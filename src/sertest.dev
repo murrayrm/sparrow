@@ -1,0 +1,8 @@
+# sertest.dev - sample device config file for serial test 
+# RMM, 22 Dec 04
+#
+# This is a device configuration file that allows testing of the 
+# serial driver.  You will need to replace the port number with the
+# device path for the psuedo-tty that is created by pty cat
+#
+device: sertest 3 /dev/pts/4;

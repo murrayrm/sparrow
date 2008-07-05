@@ -1,0 +1,89 @@
+\input etexinfo                 @c -*- texinfo -*-
+@setfilename sparrow.info
+@settitle Sparrow Reference Manual
+
+@titlepage
+@center @titlefont{Sparrow Reference Manual}
+@sp 1
+@center Version DGC.0
+@center 1 January 2004
+@sp 2
+@center Richard M. Murray
+@sp 1
+@center Division of Engineering and Applied Science
+@center California Institute of Technology
+@center Pasadena, CA 91125
+@center murray@@indra.caltech.edu
+@sp 2
+@center Eric Wemhoff, Michael Kantner, Tom Dmukauskas, Brian Winters
+@sp 1
+@center Division of Engineering and Applied Science
+@center California Institute of Technology
+@center Pasadena, CA 91125
+
+@finalout
+@c @setchapternewpage odd
+@end titlepage
+
+@c The Top node is only used in the online version
+@node Top,,,(DIR)
+
+@ifinfo
+@example
+                    *** Sparrow Reference Manual ***
+                              Version DGC.2
+@end example
+@end ifinfo
+
+Sparrow is a software package for real-time control on an IBM-PC.  The
+@emph{DGC} version of sparrow is designed to be used for the DARPA
+Grand Challenge and runs in a linux environment.  This manual
+describes how to use the DGC version of the sparrow library and access
+its features.
+
+@menu
+* intro::               Introduction to the Sparrow software package
+* servo::               Servo loop control
+* channel::             Accessing hardware with Sparrow
+* display::             Dynamic display package
+* capture::             Capturing and graphing data
+* debug::               Debugging library
+@ifhtml
+@html
+<li> <a href="pgmref/index.html">reference</a>: HTML programmers reference
+(doxygen generated)
+@end html
+@end ifhtml
+@end menu
+
+$Id: sparrow.txi 12599 2007-01-08 03:47:23Z murray $
+
+@contents
+
+@node intro,servo,,Top
+@include intro.txi
+
+@node servo,channel,intro,Top
+@include servo.txi
+
+@node channel,display,servo,Top
+@include channel.txi
+
+@node display,capture,channel,(Top)
+@include display.txi
+
+@node capture,debug,display,Top
+@include capture.txi
+
+@node debug,index,capture,(Top)
+@include debug.txi
+
+@c @include changes.txi
+@c @include reference.txi
+
+@node index,,debug,(Top)
+@chapter Index
+
+@printindex cp
+
+@bye

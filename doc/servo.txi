@@ -1,0 +1,286 @@
+@c -*- texinfo -*-
+
+@chapter Servo loop control
+@cindex servo loop control
+
+@cindex foreground processes
+Low-level servo routines are available for executing a C function
+at a specified rate.  These functions allow a servo loop to be run at a
+fixed rate while a foreground program looks for asynchronous events
+which may affect the servo loop (such as user input).
+
+@menu
+* servo/basic::		Basic servo loop control
+* servo/debugging::     Debugging inside servo loops
+* servo/technical::	Some technical details
+@end menu
+
+@node servo/basic,servo/debugging,,servo
+@section Basic servo loop control
+
+@cindex start servo
+A servo loop is created with a call to the @code{servo_setup} function:
+
+@example
+int servo_setup(void (*loop)(), int rate, int flags)
+@end example
+
+@noindent
+@cindex servo_enable
+This function sets up an interrupt routine to call the user function
+@code{loop()} at the specified rate (in Hertz).  It returns the actual
+rate of the servo loop, which is guaranteed to be at least as fast as
+the desired rate.  The servo rate must be at least 20 Hz and has a
+theoretical maximum of 1 MHz (the achievable maximum is much lower; see
+below).  If the specified rate is outside of this range,
+@code{servo_setup} returns @code{-1}.  The servo routine is not actually
+started until @code{servo_enable} is called.
+
+@cindex servo rate
+@cindex maximum servo rate
+The rate at which a servo loop can run is determined by the maximum
+speed at which the IBM PC timer can generate interrupts and the amount of
+time it takes the user code to execute.  If the user code has not
+finished executing before the next interrupt is generated, a new call to
+the routine will occur.  It is up to the user code to detect this
+situation and handle it properly (usually by returning immediately).
+
+@cindex interrrupt handler overhead
+In addition to the execution time of the user code, there is also
+overhead in the interrupt handler itself.  On a 486DX2 running at 66
+MHz, the measured overhead for the interrupt handler is 20 usec.  This
+overhead can be decreased by writing a custom interrupt handler and
+making certain assumptions are made about which registers need to be
+saved and which need to be restored.
+
+Several flags are available to modify the behavior of the servo routines.
+For the default servo handler, the following flags are defined:
+@table @code
+@item SERVO_OVFL_ABORT
+@cindex SERVO_OVFL_ABORT
+Abort the servo loop whenever an overflow occurs.
+
+@item ISR_TIMING_BITS
+@cindex ISR_TIMING_BITS
+Set parallel port bits during servo execution to allow servo timing to be
+measured (see below)
+@end table
+These flags can be logically OR'd together.
+
+@cindex servo_disable
+Once a servo has been installed, it must be started with the
+@code{servo_enable} function (no arguments).  The @code{servo_disable}
+function can be used to temporarily disable a running servo. The servo
+is re-enabled by calling @code{servo_enable}.  Calling
+@code{servo_setup} while a servo is running first disables the servo and
+then installs a new servo routine.  The @code{servo_enable} function
+must then be 
+called to start the newly installed servo.
+
+@cindex servo_cleanup
+The @code{servo_cleanup} function can be used to completely remove a
+servo loop from memory.  Once the @code{servo_cleanup} function is
+called, the servo cannot be restarted.  It must be reinstalled using
+@code{servo_setup}.
+
+@unnumberedsubsec Example
+
+The following code fragment starts a servo loop which calls @code{clocktick}
+every millisecond.
+
+@example
+static int timer = 0;
+void clocktick();
+
+main()
+@{
+    if (servo_setup(clocktick, 1000, 0) > 0) @{
+        (void) servo_enable();
+        
+        while (timer < 20000) printf("%d\n", timer);
+        servo_cleanup();
+    @}
+@}
+
+/* Interrupt handler - increment timer */
+void clocktick() @{ ++timer; @}
+@end example
+
+@node servo/debugging,servo/technical,servo/basic,servo
+@section Debugging servo routines
+
+The most common cause of bugs in servo routines is trying to accomplish
+too much in too little time.  If a servo loop takes longer than the
+servo period to execute, a new servo interrupt will be generated and the
+loop function will be called again, effectively interrupting itself.  If
+no check is made to detect this condition, before the second servo call
+finishes, a third interrupt will be generated.  Eventually, the machine
+will exhaust the stack space used to store the processor and coprocessor
+state and the machine will hang.
+
+The default mode of operation for the servo routine is to do overflow
+checking and to attempt to abort the servo if more than 8 levels of
+interrupts are interleaved.  In addition, the @code{servo_overflow} flag
+is incremented whenever an overflow occurs to provide a means of
+checking for this situation.  Note that in some instances it may be
+desireable to allow overflows in the servo loop, such as when a slow
+calculation needs to be interrupted in order to read a sensor.  However,
+this requires a special interrupt handler in order to be treated
+correctly.  This is discussed in more detail in later sections.
+
+Since servo code is run inside of an interrupt loop, it cannot be
+debugged using standard techniques.  In particular, using @code{printf}
+will not work because the time required to process and print characters
+to the screen is often much longer than the period of the servo.  This
+causes the servo stack to overflow as multiple servo loops are called.
+
+To help determine the status of a running servo loop, the @code{flag}
+function can be used to write a symbol to the screen in real time:
+@example
+flag(offset, symbol, color)
+@end example
+This function writes the specified symbol to the screen location
+specified by @code{offset} in the given color.  If a servo routine
+crashes, the screen memory usually remains unaffected and the current
+pattern of flags can be used to determine the state of the servo loop.
+
+The @code{symbol} argument defines a standard ASCII character in the
+range 0 to 255.  The @code{color} argument specifies the color which
+will be used to display the symbol.  These colors are defined in the
+include file @file{graphics.h}.  A typical usage of the @code{flag}
+function is:
+@example
+#include <graphics.h>
+
+loop()
+@{
+    flag(0, '1', GREEN);
+    /* Do the first thing */
+
+    flag(1, '2', GREEN);
+    /* Do the second thing */
+
+    /* Clear the flags */
+    flag(0, ' ', 0);
+    flag(1, ' ', 0);
+@}
+@end example
+@noindent
+The overhead for the @code{flag} function is extremely small since it
+writes directly to video memory.
+
+@node servo/technical,,servo/debugging,servo
+@section Technical notes
+
+The servo library allows a C function to be called from a timer
+interrupt generated by an internal timer on the IBM PC.  This timer is
+normally used to update the time of day, so time may be lost when the
+servo routines are in use (this is on the list of things to be fixed).
+
+@cindex interrrupt handler overhead
+The function called when a timer interrupt occurs performs the following
+actions:
+
+@enumerate
+@item
+Save the processor status and registers
+@item
+Check for overflow and increment @code{isr_count}
+@item
+Reset the stack pointer to a local stack (4096 bytes long)
+@item
+Save the coprocessor state
+@item
+Execute the C interrupt handler
+@item
+Restore the processor and coprocessor state
+@end enumerate
+
+If @code{chn_read} and @code{chn_write} are called with zero channels
+defined, sparrow interrupt processing can occur as fast as 25 KHz (on a
+486DX2 running at 66 MHz).
+
+@unnumberedsubsec Using your own interrupt handler
+
+@cindex interrupt handlers
+@cindex servo_sethandler
+It is possible to install your own low level interrupt handler to
+replace the default sparrow one.  To do so, you must first write an
+interrupt handler in C (see @code{~sparrow/src/library/servo.c} for
+example).  To install your interrupt handler, use the
+@code{servo_sethandler} function @emph{before} calling servo_setup:
+
+@example
+extern void interrupt myhandler(void);
+
+void servo_sethandler(myhandler);
+@end example
+
+Interrupt handlers must be declared as @code{interrupt} functions.  This
+forces the compiler to automatically save all internal registers upon
+entry to the routine.  However, the compiler does not store the
+coprocessor state; this must be done within the interrupt routine.
+Furthermore, if you are using large amounts of stack space, you may also
+need to allocate local stack storage and initialize the stack segment
+and offset pointers at the beginning (and end) of the interrupt loop.
+
+@unnumberedsubsec Profiling servo code
+When the @code{ISR_TIMING_BITS} flag is set, the default servo handler
+outputs timing information to the parallel port associated with @code{LPT1}.
+The following bits are used:
+
+@example
+Bit     Function
+---     --------
+ 0      set high upon entry to interrupt handler, low on exit
+ 1      set high upon entry to user servo routine, low on exit
+@end example
+
+@unnumberedsubsec Changing stack space allocation
+
+@cindex servo_alloc
+The @code{servo_alloc} function can be used to change the allocation of
+stack space by servo routines.  The format of the function call is
+@example
+servo_alloc(int size, int nframes)
+@end example
+The default size of a stack frame is 4096 and their are usually 8 stack
+frames available.  The number of stack frames determines the number of
+overlapping servo calls which are allowed.
+
+The servo stack space allocation can only be set once and must be set before
+the first call to @code{servo_alloc()}.  The most common usages of
+@code{servo_alloc} are to allocate a larger stack (if you make lots of
+subroutine calls or have lots of local variables in your servo loop) or to
+allocate fewer stack frames (to save space).  This function can also be used
+at the top of a program to allocate all space needed by sparrow; this is
+helpful if you sometimes have memory problems.  
+
+@cindex DEF_STACK_SIZE
+@cindex DEF_NFRAMES
+The constants @code{DEF_STACK_SIZE} and @code{DEF_NFRAMES} defines in
+@file{isr.h} can be used to retrieve the default size and number of stack
+frames (currently 4096 and 8, respectively).  You can also pass 0 as either
+argument to @code{servo_alloc} and the default value for that argument will
+be used.
+
+@unnumberedsubsec Real-time access to servo status
+
+@cindex servo flags
+The servo package displays its status using a set of flags in the upper
+right corner of the screen.  These flags can be used to determine the gross
+status of the servo routines.  The following flags are currently used:
+@example
+green S         servo is installed and running
+red S           servo is installed, not running
+blinking O      overflow has occured
+@end example
+The overflow flag is set as soon as an overflow occurs.  Depending on the
+servo handler you are using and the flags you passed to it, the servo may
+still be running.
+
+@cindex dbg_servo
+The @code{dbg_servo} function can be used in some instances to get more
+information about what is happening inside the servo loop.  This function
+calls @code{dd_usetbl} and sets the current display to @code{dbg_servo_tbl},
+which has detailed information about interrupt handler internal information.

@@ -1,0 +1,52 @@
+Pending items for sparrow library
+RMM, 29 Dec 03
+
+Date	   Req	Item
+----	   ---  ----
+05 Jul 08  RMM	Install compatible features from sparrow 3.1, 3.2
+       	   	  * Look through old PC code and see what can be moved
+		  
+05 Jul 08  RMM	Update Makefiles to remove /dgc legacy dependencies
+       	   	  * Updated README file to reflect current state
+       	   	  * Version number should come from master makefile
+		  * Installation directory should come from master makefile
+
+10 Jan 07  RMM	Fix Makefile.yam to create cdd before compiling .dd files
+
+30 Dec 06  RMM	Improve stderr redirection interface
+       	   	  * Small annoyances with messages at ends of buffer
+		  * Allow direct logging to a file
+		  * Integrate with debug routines
+
+29 Dec 03  RMM  Configure debug routines for use when dbg_ddflg is set
+
+03 Jan 04  RMM  Fix WRAP code
+
+03 jan 04  RMM  Change callbacks to take void * arg instead of long;
+		more portable 
+
+04 Jan 04  RMM  Add in documentation for capture routines and dd_save/load
+
+05 Jan 04  RMM  Finish up implementation of unix flags
+                  * Add txi docs for flag usage under unix (need to
+		    display flag_*)
+                  * Add flag display directly to dd_loop()??
+
+07 Aug 04  RMM  Missing documentation
+	          * flag_* routines (also need to be configured to work)
+
+07Aug04	Create debugging display to control/inspect dbg_* module
+	  * show values of all current flags in the module
+	  * allow functions to be added and subtracted from logs
+
+07Aug04	Add display hooks so that dbg_* routines work with sparrow display
+	  * avoid having debug.c functions call display code unnecessarily
+	  * convert current code to use hook functions
+
+4Dec04	Fix function generator to use timer instead of servo clock
+	  * Commented out code that used servo_freq
+	  * Use unix time commands instead
+
+23Dec04	Finish writing servo interface
+	  * Use real timing instead of sleep at end of loop
+	  * Implement remaining servo routines in servo.c

@@ -1,0 +1,684 @@
+@c -*- texinfo -*-
+
+@chapter Channel interfacing
+
+@cindex Channel interfacing
+
+Sparrow provides a simple high-level interface to hardware which maps
+each hardware input or output into an array of floating point values.
+Low-level device drivers handle the interface between the floating point
+values and the actual hardware devices.  These device drivers are
+usually transparent to the user.  The mapping between hardware and
+software is controlled via a configuration file, allowing the user to
+remap hardware devices to channels without recompiling code.
+
+In addition to automatic data conversion, the channel library supports
+data capture/dumping and real-time plotting.
+
+@menu
+* channel/usage::               Basic usage information
+* channel/config::              Configuration file format
+* channel/drivers::             Supported device drivers
+* channel/data::		Data format for device driver tables
+* channel/writing::		Writing device drivers
+* channel/details::		Technical details
+@end menu
+
+@node channel/usage,,,channel
+@section Using the channel library
+
+The channel library is designed to be used in a servo loop environment.
+After initializing the package, the user code calls @code{chn_read}
+at the top of the servo loop and @code{chn_write} at the bottom of
+the servo loop to process hardware inputs and outputs.  The data capture
+and plotting modules can be used by making calls to the appropriate
+functions, described in the next section.
+
+The channel interface is configured using the @code{chn_config}
+function:
+@example
+chn_config(filename)
+@end example
+@noindent
+The argument of the @code{chn_config()} is the name of a file
+containing the configuration description.  This contents of this file
+are described in detail below.  The @code{chn_config()} function reads
+the configuration information, initializes the internal channel and
+device tables, and initializes each of the installed devices.
+@code{chn_config()} returns -1 if there was an error in the
+configuration file or some other type of error occurred, and 1 upon
+success.  If any error does occur, @code{chn_config()} will prompt
+the user whether to continue or to abort.
+
+Once the interface has been properly configured, the device drivers are
+invoked by calling @code{chn_read} and @code{chn_write}.  These
+two functions process all inputs and outputs devices.  A typical
+invocation might look like:
+@example
+#include "channel.h"
+
+void loop()
+@{
+    chn_read();
+
+    /* Servo code goes here */
+
+    chn_write();
+@}
+@end example
+
+Analog hardware data can be accessed via the macro @code{chn_data}.  The
+@code{chn_data} macro takes one argument, the index of the hardware channel
+to be read or written.  Input channel processing (@code{chn_read}) consists
+of reading hardware data, converting it to a floating point number, and
+storing the result in @code{chn_data(i)}.  The default conversion, used for
+most devices unless otherwise specified, is
+
+@example
+data = (raw - offset) * scale,
+@end example
+
+@noindent
+where @code{raw} is the value read from the hardware, @code{offset}
+and @code{scale} are values associated with the channel being read
+and may be set in the configuration file, and @code{data} is the
+stored floating point number.
+
+Similarly, output processing (@code{chn_write()}) 
+reads the data in @code{chn_data(i)}, converts it to the appropriate 
+hardware representation, and writes the data to hardware.
+The default conversion for output processing is the inverse of the 
+input channel processing:
+
+@example
+raw = (data / scale) + offset.
+@end example
+
+@noindent
+In this case, @code{scale} must be nonzero.
+
+For devices which are binary input/output devices, the individual bits
+corresponding to the device are available via the macro @code{chn_bits}.  No
+scaling is performed on the data.  See individual device drivers for
+information on how the bits are to be interpreted.
+
+@node channel/config,,,channel
+@section Device configuration file
+
+The hardware interface configuration is specified in a file which lists
+the device drivers, hardware addressing information, channel ordering,
+data conversion parameters, and settings for several available options.  
+The configuration file allows users to tune the sparrow channel interface 
+for a specific project.
+
+A device driver and the data channels to be associated with it are set 
+up with a device definition line of the form
+
+@example
+device: devname numchan address [options];
+@end example
+
+@noindent
+The fields are defined as follows:
+
+@table @code
+@item devname
+Name of the device driver.
+
+@item numchan
+Number of channels to be handled by this driver.
+
+@item address
+Hardware address for the device.  The address must be specified in
+hexadecimal, with the prefix @code{0x}, as is standard in C.  The
+interpretation of the address is up to the driver (eg, it could be a
+serial port number or a hardware address in the I/O space of the computer).
+
+@item options
+Optional arguments, described below.
+@end table
+
+Flags may be used to set values for different options.  There is 
+a set of standard options which may be used with all devices, and
+other options are only used with specific devices.  Some options,
+such as @code{index}, affect the setup of the entire device driver
+and can only be used in a device definition line (lines starting
+with @code{device:}), while other options, such as @code{offset}, 
+affect the setup of individual channels included under a device, 
+and may be used in either a device definition line or a channel 
+definition line (see below). 
+If a valid channel option is used in a device definition 
+line, then all channels under that device will be affected.  Most
+options take on default values if they are not otherwise specified.
+
+A single option has the form
+@example
+-flag[=value]
+@end example
+The @code{value} field is required for some flags and not used
+for others.  The following settings for @code{flag} are defined 
+for all devices:
+
+@table @code
+@item -index
+Sets the index for a device driver equal to @code{value}.
+Device drivers may use their index in different ways, although it
+usually specifies an offset from the address of the driver to its
+channels.  The index must be an integer and its default value is zero.
+@code{value} can be specified as a hexadecimal number, prefixed by
+@code{0x} or @code{0X}.
+
+@item -offset
+Used by the individual drivers to convert between hardware and 
+data storage formats.  The value of the offset variable
+associated with all channels under this device is set equal to
+@code{value}.  The offset must be an integer and its default value is zero.
+
+@item -scale
+Used by the individual drivers to convert between hardware and 
+data storage formats.  The value of the scaling variable
+associated with all channels under this device is set equal to
+@code{value}.  The scaling factor is a floating-point number, and its
+default value is 1.
+
+@item -nodump
+Clears the dump flag associated with all channels under
+this device.  A channel's dump flag specifies whether
+this channel's data will be captured while using the capture
+routines.  If set to one (the default value) data will be 
+captured.  If cleared, data for this channel will not be
+captured.
+
+@item -filter
+Implements digital filtering on the data for the specified channel(s),
+using filter coefficients saved from MATLAB.  The algorithm used mimics
+that used by the @code{filter} command in MATLAB.  
+The coefficients for the filter are read from two vectors, 
+@code{a} and @code{b}, saved by the user into a MATLAB
+format @file{.mat} file. The argument of this flag is the name of
+the coefficient file.  These coefficients may be generated with
+the standard MATLAB filter generating functions such as
+@code{butter} or @code{ellip}. The matrices must be named
+@code{a} and @code{b}, lower case.  (This is the same nomenclature
+the MATLAB Signal Processing Toolbox Manual uses when discussing the
+@code{filter} command.)  The length of the a matrix must be at least
+one. The b matrix may be empty but must be present.
+[**currently the matrices must be saved from
+PC MATLAB in order to work**]
+
+The @code{-filter} flag may be used in a device definition line, in
+which case all channels under that device will be filtered with the
+specified filter, or in a channel definition line.
+The input to the filter comes from the channel
+and by default the output of the filter overwrites this channel's data.  
+See the @code{filtout} flag for writing to another channel.
+
+@item -filtout
+Sets a channel filter to write to a channel other than the channel
+being filtered.  This option must appear after the @code{-filter}
+option for the channel in question, and may only be used in a channel
+definition line. 
+The @code{value} of the flag determines The channel used to 
+store the output of the filter; it must be an integer and
+is measured absolutely from the beginning of the channel table (the
+first channel being 0, as always).  Most commonly, the user should
+use a virtual device channel as a place to store filter output if the
+output is not put in the channel being filtered.
+
+@end table
+
+@noindent
+More device-specific flags are listed and explained under the 
+descriptions of their respective devices.
+
+To modify the setup of individual channels, a channel definition
+line of the form
+
+@example
+channel: chanid [options];
+@end example
+
+@noindent
+is used.  This line must appear after the device definition which
+creates the channel and before the next device definition.  The
+@code{chanid} field is the position of the channel in the device,
+where 0 indicates the device's first channel.  Options have the same form 
+as above, and the ones that may be used for individual channels are 
+the @code{offset, scale} and @code{nodump} options, as well as 
+certain device-specific options.
+
+Any part of a line following the character @kbd{#} will be ignored.
+
+A sample configuration file containing sample entries for most of the
+common devices can be found in
+@file{demo\config.dev}.
+Also included are some comments and typical conversion values used for
+devices around the lab.
+
+Here are a couple of sample entries in a typical device configuration file:
+@example
+device: das16-adc 4 0x300 -start=3 -scale=0.0048852 -offset=2047;
+        channel: 2 -nodump;
+        channel: 3 -nodump;
+
+device: function-gen 2 0x00;
+        channel: 0 -type=0 -dc_offset=0 -frequency=.05 -scale=45 -offset=0;
+        channel: 1 -type=1 -dc_offset=0 -frequency=1 -scale=10 -offset=0;
+@end example
+The first entry allocates 4 channels of das16 A/D conversion.  The
+device's address is 0x300 and it is indexed to begin reading at its
+fourth channel.  All channels have identical values for their offset and
+scale, specified by flags on the device definition line, 
+and only the first two channels will be captured. The second entry
+creates two channels that are handled by the function generator device.
+This device requires no address, but one must be included for the
+routine which parses the configuration files.  Here it is set to 0x00.
+The first channel will produce a type 0 waveform (sine wave), with the
+given values of dc offset, frequency, amplitude, and phase.  The second
+channel generates a type 1 waveform (square wave) with different
+respective parameters. Both channels will be captured. Note that
+@code{dc_offset} and @code{frequency} are non-standard flags.
+
+The code which parses the configuration file is fairly robust.  It will
+ignore flags which are not recognized as either a standard flag or a
+device specific flag.  Lines which contain unknown text are also
+ignored.  In both cases, an error is generated to alert the user that
+something unexpected was found.  If the fields needed for a device or
+channel line are not present or are invalid, the device or channel will
+be ignored, with an error message. See the discussion about these error
+messages below.
+
+@node channel/drivers,,,channel
+@section Supported devices
+
+The following device drivers are currently available.  The initials
+after the name of the device driver indicated the author and date of the
+last update to the driver.
+
+@c Device information is kept in a separate set of files
+@c These should be listed alphabetically
+
+@c @include chn-das16.txi
+@c @include chn-dt2815.txi
+@include chn-fcngen.txi
+@c @include chn-futaba.txi
+@c @include chn-hctl.txi
+@c @include chn-joystick.txi
+@c @include chn-lord.txi
+@c @include chn-ixys.txi
+@include chn-virtual.txi
+@c @include chn-zebra.txi
+
+@node channel/data,,,channel
+@section The Device and Channel Tables
+This section contains a more exact description of the channel
+interface details.  It is aimed mainly at those who wish to write
+their own device drivers or use Sparrow at a lower level.
+
+Two arrays which store device driver and channel configuration data 
+form the backbone of the channel interface.  Their types and names
+are 
+@example
+DEVICE chn_devtbl[MAXDEV];
+CHANNEL chn_chantbl[MAXCHN];
+@end example
+The @code{DEVICE} and @code{CHANNEL} types are defined in the 
+channel header file,
+@file{src\library\channel.h}.  
+
+The @code{DEVICE}
+type is a structure which contains information for each device
+being used.  Its entries are
+@table @code
+@item int (*driver)()
+This is a pointer to the device driver function for this device.
+The function is expected to return an integer.
+@item int size
+Number of channels used by this device. This is set to the @code{numchan}
+entry in the device definition line for this device in the configuration
+file.
+@item int address
+Holds the value of the device address.  This is set to the
+@code{address} entry in the device definition line for this device
+in the configuration file.
+@item int index
+Holds the value of @code{index} for this device.
+@item char name[20]
+A character array containing the name of the device specified in the
+device definition line.
+@end table
+
+The @code{CHANNEL} type is a structure containing information for each
+channel.  Its entries are
+@table @code
+@item short raw
+Holds the @code{raw} value defined previously. Typically this place is
+used to hold a value in the form used by the actual physical device.
+@item double data.d
+Holds the @code{data} value defined previously, the value of the
+channel's data. Typically this place is used to hold a value in the 
+form used by the user's routines.
+@item int devid
+The id number of the device with which the channel is associated. It
+is the offset of the device's entry in the device table, @code{chn_devtbl}.
+@item int chnid
+The id number of this particular channel, relative to the channel's 
+device.  For instance if the device has 2 channels, their channel ids
+would be 0 and 1.
+@item int offset
+Holds the value of @code{offset} as defined previously and used for
+@code{raw} to @code{data} conversions, and vice versa.
+@item double scale
+Holds the value of @code{scale} as defined previously.  It is used for
+conversions between @code{raw} and @code{data} values.
+@item unsigned dumpf
+Flag which indicates whether the channel is to be captured by the
+@code{capture_} or @code{adcap_} routines.
+@item FILTER *filter
+Pointer to a structure which contains data necessary for channel
+filtering. It is set to NULL (defined in @file{stdio.h}) if this
+particular channel does not get filtered.
+@item void *dev_sp
+Empty space set aside for use by individual device drivers, so that
+the @code{CHANNEL} type may be customised by a device driver. 
+This space is not used by sparrow, so that the device driver may
+do anything it wishes with the space.  Typically it has been used
+as a pointer to a structure for storing data that needs to be
+associated with the channel or device.
+@end table
+
+These tables are filled by the @code{chn_config()} function in the
+following way.  A new entry in the device table and the associated
+channels in the channel table are created and filled when a device
+definition line occurs in the configuration file.  When
+@code{chn_config()} sees such a line, it reads in the device
+@code{name, size,} and @code{address}.  It then fills an entry
+in the device table with these values along with a pointer to the
+device driver function and a default @code{index} value of 0.
+
+Next it sets default values for the @code{offset, dumpf, scale,} and
+@code{filter} fields of channels under the device.
+It will then attempt to handle all of the decalared options for the 
+device. If an option is not recognized by @code{chn_config()}, the
+device driver will be called at this point to attempt to handle the
+flag. After the options have been read and dealt with, the device
+will be assigned its entries in the channel table.  The channel
+fields of @code{devid, chnid, offset, scale, dumpf,} and @code{filter}
+are initialized to the values that were indicated by any options in
+the device defintion line, or the default values if new values were
+not explicitly set.  
+At this point the device driver will be called with the
+@code{NewChannels} action to allow it to perform any processing
+it needs to do for the new channels.
+Here @code{chn_config()} is finished adding the device.
+
+When @code{chn_config()} comes across a channel definition line,
+it first checks to make sure the line belongs to a valid device,
+and then reads the channel number field which indicates which of
+the device's channels is to be modified at this point. Then the
+options of the channel line are read in the same manner as for a
+device definition line.  If an option is recognized as standard then
+the channel field entry affected is reset to the indicated
+value, while if it is unrecognized then the device driver is
+invoked to handle the option.
+
+The resulting structure of the device and channel tables is this: there
+is one entry in the device array for each device, in the order listed
+in the configuration file; similarly there is one entry in the channel
+table for each channel, also in the order of the config file. The
+channels of the first device are listed first, followed by the channels
+of the second device, etc.
+
+The channel interface routines in sparrow
+use these two tables and the values stored in them
+when performing most of their tasks.  Some other relevant variables
+defined in the channel header file are
+@table @code
+@item int chn_ndev
+The number of entries in the device table, equal to the number of
+devices in use.
+@item int chn_nchan
+The number of entries in the channel table, or the number of channels
+in use.
+@end table
+
+@node channel/writing,,,channel
+@section Writing a new device driver
+Sparrow is structured so that for each for each device used, there 
+is a corresponding routine that handles all
+low-level interactions with the actual physical device.  This 
+routine is called the device driver.  There are several specific
+duties that a device driver must perform, such as reading data
+from the device, writing to it, initializing the device, interpreting
+flags that are specific to the device, etc.  The device driver acts
+as the go between which separates the rest of Sparrow from the 
+device, and so it must take care of anything which is unique to
+that specific device and provide all functionality which a user
+may want with a device.
+
+For each device-specific function that Sparrow needs to perform,
+a call to the device driver is made with a flag indicating what
+action Sparrow expects it to perform at this particular point in
+time.  The same device driver function is called each time, and has the form
+@example
+int driver(DEVICE *dp, CHANNEL *cp, DEV_ACTION action)
+@end example
+This function is the one the user needs to supply if he/she wants to
+make a new device driver.
+The @code{DEVICE, CHANNEL}, and @code{DEV_ACTION} types are defined
+in @file{e:\sparrow\include\channel.h}.
+The arguments @code{dp} and @code{cp} always point to relevant 
+entries in the device or channel table, respectively, but 
+may have different meanings
+depending upon the value of the @code{action} argument.
+
+@table @code
+
+@item Read
+The device driver is called with this action once 
+for each time is it listed in the device
+table during each call to @code{chn_read()}.
+This is where devices which receive input
+from physical or software devices should update the @code{raw}
+and/or @code{data} values of _each_ of its channels.  
+This might
+involve reading data from the device and storing it in the 
+appropriate place in the channel table, which is usually
+the @code{data} or field.
+The arguments @code{dp} and @code{cp} will point to the device's 
+entry in the device table and the device's first channel's entry 
+in the channel table, respectively. 
+If the device happens to be an output type 
+device or for some other reason would like to ignore the @code{Read}
+action, it may by all means do so.
+
+@item Write
+The device driver is called with this action once 
+for each time is it listed in the device
+table during each call to @code{chn_write()}. 
+Typically devices
+which have channels which handle output to devices should do 
+their outputting here.  This might involve conversion of the 
+@code{data} value into a form usable by the physical device
+and some C code to write the value to the device. 
+The arguments @code{dp} and @code{cp} will point to the device's 
+entry in the device table and the device's first channel's entry 
+in the channel table, respectively. When the device is called with
+this action it needs to do the outputting for _each_ of the channels
+defined under it.
+If the device happens to be an input type 
+device or for some other reason would like to ignore the @code{Write}
+action, it may by all means do so.
+
+@item Zero
+A device driver is called with this action
+whenever the @code{chn_zero(int chnid)} function
+is called and the channel indicated by @code{chnid} 
+belongs to the device.   
+The arguments @code{dp} and @code{cp} will point to the device's 
+entry in the device table and the channel indicated by @code{chnid},
+respectively.
+Typically the device should set its output or input to zero or
+some other initial value.
+
+@item Init
+The device driver is called with this action once 
+for each time is it listed in the device
+table during each call to @code{chn_init()}. 
+(Note that this function is called at the end of the 
+@code{chn_config()} function, as well as during any 
+calls which might be made by the user.)
+The device driver should take this opportunity to do any initial
+processing it needs to do before it begins channel reading or
+writing, for _each_ of its channels.
+This might include loading data files necessary for input or
+output conversion, processing of the values of any flags loaded
+during the course of @code{chn_config()}, or zeroing of any
+channels.
+The arguments @code{dp} and @code{cp} will point to the device's 
+entry in the device table and the device's first channel's entry 
+in the channel table, respectively.
+
+@item HandleFlag
+The device driver is called with this action from @code{chn_config()}
+whenever this function comes across an option flag in the 
+configuration file it does not recognize as a standard option (the
+standard options are listed above).  
+
+The @code{chn_config()} function attempts to read through the
+configuration file sequentially, dealing with each keyword, field
+value, or option as it finds them. 
+Remember the format for a device or channel definition line contains
+a keyword followed by 3 or 1 expected values, followed by possible
+options which may be either standard or device-specific. 
+Remeber also that an 
+option has the format 
+@code{-flag[=value]}.
+When an option is read that is not recognized by @code{chn_config()} as
+a standard option, it is
+assumed that the option flag is one that has been created specifically
+for the current device.  Because the flag is unique for the device, it
+must be dealt with by the device as well. This results in a call to 
+the device driver with the @code{HandleFlag} action.
+When the call is made, 
+@code{chn_config()} passes the flag name, its value, and its position
+in the configuration file to the device driver through 3 global 
+variables:
+@table @code
+@item CHN_FLAG_TYPE chn_flag_type
+Contains one of the three values @code{Unknown, Device,} or
+@code{Channel}, which are of type @code{CHN_FLAG_TYPE}, defined in
+the channel header file.  This value indicates where the option
+occurred.  @code{Device} indicates that the option was found in a 
+device definition line for the device driver, @code{Channel} indicates
+a channel definition line, and @code{Unknown} means the option was outside
+one of these types of lines.
+@item char chn_flag_name[32]
+Contains the name of the option flag, which is the part of the option
+which occurs after the '-' and before the optional '='.
+@item char chn_flag_value[32]
+Contains the value field of the option, if one was included in the 
+configuration file.  It will be in ascii format, copied directly from
+the configuration file.  If there was no @code{value} field, then this
+will be a null string.
+@end table
+Using the values of these 3 variables, the device driver should be able
+to decide how it wants to deal with the flag, and should do all its
+processing for it.
+
+If @code{chn_flag_type} is @code{Device}, The argument @code{dp} 
+will point to the device's new entry in the device table, while
+@code{cp} points to what will become the device's first entry in
+the channel table, but since the device's channels have not yet 
+been filled at this time, @code{cp} should not be used.
+If @code{chn_flag_type} is @code{Channel}, The argument @code{dp} 
+will point to the device's new entry in the device table, while
+@code{cp} will point to the entry in the channel table for the 
+channel indicated on the channel definition line.
+
+@item NewChannels
+The device driver is called with this action by @code{chn_config()}
+once per device definition line. See the discussion in the previous
+section about how this function works. The device driver should
+take this opportunity to do any processing it needs to do for its
+new channels.  Typically this might include customising the
+@code{dev_sp} field in the channel entries for the device.
+The arguments @code{dp} and @code{cp} will point to the device's 
+entry in the device table and the device's first channel's entry 
+in the channel table, respectively.
+Nothing is actually required of the device driver at this point.
+
+@end table
+
+The device driver function is expected to return an integer. There is
+a protocol we try to follow for this return value. In general, if
+an error occurs which could cause problems, the device driver
+should return the value -1.  A return value of 0 indicates that
+something unexpected or unusual occurred, for instance the device
+driver was asked to handle a flag that it did not recognize. 
+In general a return value of -1 will cause the calling function
+to abort some operation and print an error message to @code{stderr},
+while a return value of 0 will produce less drastic measures.
+Upon success, a device driver should return a positive number.
+Right now, the return values are not used if the device driver
+is called with the @code{Read, Write, Init,} or @code{Zero} actions.
+The return values are used if the action is @code{NewChannels} or
+@code{HandleFlag}.
+
+See @file{src\library\chnconf.c} for the source code
+for @code{chn_config()}, if more detailed knowledge of how the
+configuration routine works is needed.
+See the files @file{hctl.c} and @file{das16.c} in the same library
+directory for good examples of some pretty standard device drivers.
+
+@node channel/details,,,channel
+@section Technical details and advanced features
+
+@unnumberedsubsec Device driver table management
+Creating a new device driver consists of two steps: writing the device
+driver and adding the device driver to the list of known devices.  It is
+possible to add a device driver to the list of known drivers at run-time
+using the @code{dd_add_driver} function:
+@example
+chn_add_driver(char *name, int (*driver)())
+@end example
+This allows the driver to be accessed from the @code{config.dev} file using
+@code{name}. 
+
+Sparrow maintains a standard list of device drivers which are availlable by
+default. The device drivers are stored in a static table, @code{chn_devlut}.
+Calls to @code{chn_add_driver} add entries to @code{chn_devlut}.  If you are
+trying to save memory, you might want to redefine the lookup table to only
+include those devices which you are going to actually use.  You can do this
+by creating your own @code{chn_devlut} table.  The format is
+@example
+#include "channel.h"
+DEV_LOOKUP chn_devlut[CHN_MAXDEV] = @{
+  @{"name-of-device1", driver_fnc1@},
+  @{"name-of-device2", driver_fnc2@},
+  ...
+  @{NULL, (int (*)()) NULL@}
+@};
+@end example  
+The current value of @code{CHN_MAXDEV} is 64, which should be more than
+enough devices.   There is also a limit of 64 channels that be defined.
+
+@unnumberedsubsec Error messages
+In general, error messages will be written to the output stream
+@code{stderr}, which should be defined in @file{stdio.h} if the compiler
+conforms to ANSI C.  Currently, error messages may be
+generated when an error occurs within @code{chn_config()}, 
+both sets of capture routines, or any device driver which produces
+error messages.  The standard device drivers will give warnings when
+they notice something bad happen.
+
+The @code{stderr} stream is normally directed to the screen.  This may
+be a problem sometimes, most notably when the display routines are 
+running when messages may not be seen or may cause garbage on the 
+screen.  The error messages may be redirected to a file with the
+command @code{freopen(filename, "wt", stderr)}.  This will open
+the indicated file and write all subsequent error messages to it.
+This file must also be closed by the user before ending the program,
+with @code{fclose(stderr)}.
+
+

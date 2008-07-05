@@ -1,0 +1,424 @@
+@c -*- texinfo -*-
+
+@chapter Data capture and plotting
+
+Data which is processed by the channel library can be automatically
+captured and stored on disk for further analysis.  There are two sets of
+routines that will provide data capture. The first set is uses a buffer
+in memory; it is fast but has limited storage space (64K).  The second
+set uses disk buffering and hence can store much more data.  However,
+the overhead associated with the disk buffering can cause performance
+penalties.  Both sets of routines are functionally compatible, so
+switching between one and the other is straightforward.  In addition, a
+real-time plotting package is available which allows channels to be
+plotted using an oscilloscope-like interface.
+
+@emph{Note: this documentation describes an outdated version of the
+data capture routines.  The new linux version of the capture routines
+are being written.}
+
+@section Single-Dumping Capture Routines 
+These routines temporarily
+store data to a buffer in memory, which is dumped to disk when the
+data capture is complete.  Therefore the amount of data which can be
+continuously captured is limited to the size of the buffer, which is
+currently 32K.  To save memory and increase the amount of
+data that can be captured, the data saved is actually the @code{raw}
+channel data which is an integer, as opposed to the
+@code{data} channel data which is a floating point number.
+When dumping to disk occurs, the stored @code{raw} is converted to
+@code{data} by the device driver for the channel.
+
+All of the single dumping capture routines are prefixed by
+@code{chn_capture_}.  
+To begin capturing data, call @code{chn_capture_on()}.  This function
+allocates the temporary buffer and begins data capture if successful.
+When capturing is enabled, the @code{raw} channel data for each channel 
+which has its dump 
+flag set (see the section about device configuration files) will be
+stored once each time @code{chn_write()} is called.  (Generally, the user
+calls this once in the servo routine; consequently data is saved at the
+servo frequency.) 
+@code{chn_capture_on()} clears and resets the capture buffer.  It returns 
+-1 if unsuccessful.
+
+Data capture is turned off by calling @code{chn_capture_off()}, or is
+turned off automatically when the buffer becomes full.  When
+@code{chn_capture_on()} is called,
+the buffer pointer is reset to the beginning of the buffer,
+overwriting any data that was previously in that location.  Thus data
+which has not been saved to disk is lost.  If you wish
+to stop capturing data and then resume from where you left off, use the
+@code{chn_capture_resume()} function.  This function returns -1 if
+the capture buffer is already full.
+
+Captured data is saved to disk with @code{chn_capture_dump()}, which
+takes a string containing a valid file name as an argument.  Data which
+has been stored in the capture buffer will be converted by individual
+device drivers and saved to the file in a column format.
+@code{chn_capture_dump()} returns the number of data fields written, or
+-1 if an error occurs.
+
+@section Asynchronous-Dumping Capture Routines
+These routines save data to a temporary buffered output stream.
+A manager function monitors the stream's buffer;
+when it detects that the buffer has become more than halfway filled it 
+initiates a flush of the buffer to the stream's assosciated file on
+disk, and resets the buffer for further data capture.  Conceivably, 
+then, the amount of data that
+can be stored is limited only by the maximum size for a disk file.  The
+data is saved to the temporary output stream in raw binary format
+because this is fast; when the experiment is finished and speed is no
+longer a consideration, a function may be
+called that will convert the data in the temporary binary file to more
+easily handled ascii text. 
+
+All of the asynchronous dumping capture routines are prefixed by
+@code{chn_adcap_}. 
+
+@code{chn_adcap_on()} allocates a buffer for the output stream, opens
+the stream, and enables capturing.
+When capturing is enabled, the data for each channel which has its dump 
+flag set (see the section about device configuration files) will be
+stored (in binary format) once each time @code{chn_write()} is called.
+The return value is -1 if there is a problem setting up the output
+stream, and a positive integer on success.
+
+To disable capturing and close the temporary output stream, call
+@code{chn_adcap_off()}.  Use @code{chn_adcap_append()} to append new
+data to the end of a raw data file.  The capture data will then be
+appended to the file specified by @code{chn_adcap_rawdatafile}.  An
+error will occur if the string is null, the file does not exist, or the
+file was not created by @code{chn_adcap_on()}.  These two functions
+return a positive integer if successful and -1 if there was an error.
+It is important that the number of channels being captured when the raw
+data file was first created is the same number as when
+@code{chn_adcap_append()} is called.  Otherwise, garbage will be
+produced when the file is ultimately converted to text.
+
+The file containing the raw binary data is converted to text 
+with @code{chn_adcap_dump()}, 
+where a valid file name of 31 characters or less 
+is passed as an argument to specify the 
+output file.  The raw data file will be converted by individual
+device drivers and saved to the output file in a column format.
+@code{chn_adcap_dump()} returns the number of data fields written,
+or -1 if an error occurs.  If the filename specified already exists, the
+user will be prompted to overwrite it.
+
+As mentioned above, the asynchronous dumping routines make use of a
+manager function which periodically checks the level of the temporary
+output stream's buffer and flushes it to disk when it becomes half full.
+This function is called @code{chn_adcap_manager()}, and it needs to be
+called
+often enough so that the buffer does not overflow between consecutive
+calls.  Currently there are 200 channels of safety buffer; this means
+that adcap can handle 200 channels of data being saved to the
+stream buffer between consecutive calls to the manager, and still
+guarantee that the buffer will not be overfilled.
+The manager function also needs to be called asynchronously from the servo
+routine, i.e. don't call it from the servo routine, because the 
+function may take a substantial time to complete.
+
+If the sparrow 
+display functions are being used and @code{dd_loop()} is currently 
+running, then @code{chn_adcap_manager()} will automatically be
+called from the display loop whenever capturing is enabled. 
+If the display loop is not running,
+then the user is responsible for calling the manager function.
+
+However if this is done, then anything which would cause dd_loop to stop
+updating this particular display table
+while asynchronous capturing is enabled would be bad.  For instance,
+entering data or switching to a different display table would cause
+this.
+
+If for some reason data is being captured at too high a rate for the
+hardware or the manager function to handle, a warning flag @emph{might}
+be displayed, and will occur as a red 'X' in the upper right corner of
+the screen.  If this happens, it is best to reboot as memory could be
+trashed.
+
+@emph{Note:} If you are running a program from inside Borland's
+Integrated Desktop Environment (IDE), you need to reserve extra memory
+for use by the capture routines.  This can be done by setting the program
+heap size in the debugger options.  Try setting it to at least 100K.
+
+@section Technical details
+
+When using the asynchronous dumping routines, the global variable 
+@code{chn_adcap_rawdatafile}, defined in
+@code{channel.h}, is a pointer to the name of the file which will be
+assosciated with the raw data file stream.  
+If the user has a preference for the
+file name, (for instance when he/she wants to save data for several trials
+in different raw data files and decode them later) 
+he should put the name at this
+location before @code{chn_adcap_on()} is called.  If this file already
+exists, the user will be prompted to overwrite it.
+The length of the name must be
+twelve characters
+or less, and if @code{chn_adcap_rawdatafile} is a null string a
+unique filename will be generated and put in
+@code{chn_adcap_rawdatafile}.
+
+Data can be captured at a much higher rate if the raw data file is located
+on a local hard disk, i.e. the c: drive.  Therefore to increase the
+maximum possible data capture rate (which is currently around 1500 Hz
+when saving 6 channels on a 386), put this file on the c: drive by
+specifiying the entire path in @code{chn_adcap_rawdatafile}, such as
+@example
+strcpy(chn_adcap_rawdatafile, "c:\temp\user");
+@end example
+
+The global variable @code{chn_adcap_flag}, defined in
+@code{channel.h}, will be set to one whenever capturing is enabled and 0
+otherwise, which may be helpful for the user's coding.
+
+In the general case, data files in raw binary format are
+converted to textual files
+by calling the function
+@code{chn_adcap_decode()}, for example
+@example
+decode_routine() @{
+    char input[13], output[13];
+    strcpy(inputfile, "rawdata.raw");
+    strcpy(outputfile, "trial4.dat");
+    chn_adcap_decode(inputfile, outputfile)
+@}
+@end example
+will convert binary raw data saved in @code{rawdata.raw} to text and 
+save it to the file @code{trial4.dat}.
+If @code{outputfile} is a
+preexisting file, it will be overwritten, and @code{inputfile} is
+erased when the data conversion is finished. As usual, the return value
+is a positive integer upon success and -1 if an error occurs.
+
+If the name of the raw data file to be decoded
+is already stored in the global variable @code{chn_adcap_rawdatafile},
+then @code{chn_adcap_dump()} will behave exactly the same as
+@code{chn_adcap_decode()}, 
+using @code{chn_adcap_rawdatafile} as the name of the input file and a
+filename passed to it as the output file.
+This is useful when you want to decode a raw data file that was just
+created or appended to, because the name of the raw data file will still
+be stored in @code{chn_adcap_rawdatafile}.  Hence the simplest data
+capturing session would consist of calls to @code{chn_adcap_on(), chn_adcap_off(),} and
+finally @code{chn_adcap_dump()}. This mimics (exactly) 
+the single-dumping capture
+routines. 
+
+The actual command which stores captures a copy of the current channel
+data into the raw data file is @code{chn_adcap_capture()}. This is
+called once by @code{chn_write()}, so that when the user is calling
+@code{chn_write()} in the servo routine, data is automatically captured.
+The user is also free to call @code{chn_adcap_capture()} in her own code
+if she wants to capture data independently from when she calls
+@code{chn_write()}.
+
+@section Real-time plotting
+There is a set of routines provided which can be used to graph
+the Sparrow data channels in real time.  The plotting routines are
+fairly flexible in terms of how the channels are plotted, and have
+on-screen menus to control the plotting configuration.  Many of these
+menu controls provide the same functions and options which can be 
+found on an oscilliscope.  The name @code{vs} has been given to the
+routines, which stands for virtual scope; this is because in effect they
+simulate a real oscilliscope, using Sparrow data channels for input
+instead of an analog signal.
+
+To start the graphing routines, call the function @code{vscope()}, defined
+in @code{sparrow/include/vscope.h}.  It can be called from within a display
+loop or other code; when the routine is ended, it will pass control back to
+the original display loop or the calling function.  The @code{vs} routines
+depend upon the servo routine to be running and updating the data channels
+in order to function.  The graph is updated once per servo call (if
+processor time permits).  This is because it is assumed that the data
+channels are changed during the servo routine only, and therefore updating
+the plot more often would be wasteful.
+
+Once inside the plotting routines, the user can configure the number
+of channels plotted, which are plotted, how they are scaled and offset
+on the screen, colors, and linetypes of the plots.  The heart of the
+@code{vs} routines is a data structure called a graph entry.  A graph
+entry structure contains all the data necessary to plot one channel:
+the channel number to be plotted, its status (turned on or off), the 
+number of units per graph division for this entry (analogous to volts
+per division on an oscilliscope), its vertical position on the screen,
+color, linetype (solid or dotted), and a 40-character text description
+of the entry.  
+
+There are two ways in which data can be plotted.  In ac mode only the
+ac part of the signal is plotted, whereas in dc mode the dc part of the
+signal is also plotted.  These modes are similar to those found on an
+osclliscope.  For each graph entry that is turned on, a corresponding
+numbered arrow is drawn on the y axis of the screen.  This points to
+the "zero position" of the graph entry.  This is the screen location
+relative to which the data for that channel will be plotted. This
+position can be placed at any location on the y axis. 
+
+In dc mode two more parameters besides the zero position are used to 
+plot the data.  The "volts per division" for the graph entry specifies
+how many units of data each division on the graph will correspond to,
+and the "offset" value specifies how much the graph is offset
+(vertically).  This offset value is implemented such that when the
+channel has the 
+value of offset, it will be plotted at the position of the graph
+entry's arrow.  e.g if the offset is zero then the arrow will point
+to where zero is on the y axis, and if it is 50 then the arrow will
+point to 50 on the y axis.  In the latter case, the "zero position"
+location does not actually correspond the the location of zero on
+the y axis.
+
+In ac mode, the dc part of the signal is subtracted from the actual
+data value before it is plotted.  This is implemented by keeping
+a running average of the signal which is calculated by performing
+@example
+average = (1 - y) * average + y * data
+@end example
+each time a point is plotted, where y should be between zero and one
+and affects how quickly the average value will respond to the
+data signal.  Ideally a point will be plotted once
+per servo routine.  In this case, the time constant associated with
+this system will be 
+@example
+servo_period / y
+@end example
+where the servo period is the time between servo calls, or the
+inverse of @code{servo_freq}.  The response of the average value
+to a unit step input of the data (with zero initial condition) is
+@example
+1-exp(-t/tau)
+@end example
+where @code{t} is time and @code{tau} is the time constant.
+Also, the inverse of @code{tc} is the approximate cutoff 
+frequency in the bode plot of the response of the average to the
+data.  In any case, by default the time constant for a particular
+graph entry will be set equal to the time to fill one screen of data,
+if time is the independent variable, or 5 seconds if another graph
+entry is the independent variable.  To set your own time constant,
+go the the AC_TIMECONST menu.  After the average has been subtracted
+from the data, the value of "volts per division" is used to scale
+the resulting value, and it is plotted relative to the "zero position"
+of the graph entry.
+
+The screen consists of a window for graphing, a screen menu area to the
+right side of this, and a list of graph entries and the various values
+associated with them on the bottom of the screen.  The screen menu and
+graph entry areas are implemented using dynamic display tables, and so
+their use should be familiar if you use the display package at all.  The
+standard methods and keys for moving from field to field and entering
+data are the same. "r" refreshes the display table, and "q" quits the
+@code{vs} routines.
+The size of the graph window will change according to how much space
+the other areas use.
+
+The graph entry area lists and allows the user to change some of the
+graph entry paramaters.  The user can specify which graph entries get
+displayed in this area, with the CONFIG_ENTRIES menu. For instance it
+is possible to have 10 different graph entries defined, but only 4
+displayed.  By changing one of the numbers listed under "ENT", you
+will change the graph entry which is listed on that line.  The data
+channel associated with a graph entry is listed under "CHN", and
+can be changed here also.  The "VPDIV" parameter controls the number
+of units that are graphed per graph division
+Under "OFFSET", you can set the mode of
+the graph entry to ac or dc by pressing the "a" or "d" button.  There
+is a value displayed here also; it is
+offset of the graphed channel when in dc mode or the value
+of the average channel signal if in ac mode. "ZPOS" is the zero
+position and controls where the data is
+placed on the graph.  In particular, "ZPOS" specifies where, relative
+to the center of the graph, a data value of zero will be plotted. For
+each graph entry that is turned on, an arrow is drawn on the left side
+of the screen that points to this zero position for the channel.
+
+"VPDIV" and "OFFSET" are in the same units as
+the data channel, whereas "ZPOS" in specified in terms of screen pixels.
+These three fields can be changed by the usual input method for
+a dynamic display table; they can also be "scrolled" by using the up
+and down arrow keys while holding down the control key.  The "STAT"
+buttons may be used to turn a graph entry on or off, by pressing the
+proper button.  Finally, the "DESCRIPTION" is a string that may be
+used to associate a short description of a graph entry or what it
+is graphing.  It should be less that 40 characters.
+
+The screen menu allows access to other configuration settings and
+functions.  The buttons here typically lead to submenu for that
+button, where various configuration paramaters can be changed and
+other actions performed.  A button called "MAIN MENU" is standard
+to all of these submenus, and as you might expect it takes you back
+to the main screen menu.  The "m" key is also bound to this function. 
+
+Under the CONFIG_ENTRIES submenu, the user may specify
+how many graph entries currently exist, the data channels which are
+associated with them, and how many of them and which
+ones are displayed in the graph entry area.  Simply input the
+appropriate values. 
+
+The DISPLAY submenu lets one control various aspect of the display. 
+The color and linetype of each graph entry may be adjusted; the color
+must be an integer between 0 and 15 inclusive. If the linetype
+is set to dotted, a data point is plotted once per servo routine; a 
+solid linetype simply draws a straight line between successive data
+points.  In the same menu, the number of horizontal and vertical 
+divisions of the screen grid may be changed.
+
+The HORIZONTAL submenu controls the horizontal, or independent, variable.
+All of the graph entries which are turned on are displayed against
+this variable.  This variable can be set to use time or to use one
+of the defined graph entries, and the data channel associated with it.
+To use time, set the independent variable number to 0.  When time is
+the independent variable, the selected graph entries are plotted from
+left to right in the graph window; when the plot reaches the right edge
+of the screen, the graph window is cleared (reset) and plotting starts
+from the left again.  The value of tpdiv, or time per division, is
+used to scale the graph horizontally.  The value of this is changed
+in the horizontal menu; it can also be "scrolled" the same way as the "VPDIV,
+OFFSET", and "ZPOS" variables. 
+
+To select another graph entry as the independent variable, set the
+independent variable number to the number of the desired graph entry.
+When this is the case, the values for "VPDIV, OFFSET", and "ZPOS" and 
+the mode of the graph entry (ac or dc) are
+used to find the horizontal position of the plot point, in the same
+way these values are used to determine the vertical position of a plot
+point.  The graph is never reset automatically when a graph entry is 
+used for the independent variable, it will keep plotting without
+refresing forever; to refresh the graph, press the "R"
+key.  This key will always reset the graph window and display table.
+
+The SAVE/LOAD submenu provides the ability to save the current user
+configuration for the graphing routines to a file, and to load the
+corresponding saved files.  The configuration of the plotting
+routines is defined as most of the user-customizable paramaters.
+It includes the list of graph entries, the list of which graph
+entries are currently displayed, the independent variable, the
+time per division (used when time is the independent variable), and
+the number grid divisions. As a practical consideration, the program
+will crash less if these files are on the local hard drive.
+
+As descibed above, the AC_TIMECONST submenu allows the user to 
+change the value of the time constant used in the ac mode for a
+graph entry.
+
+There are a few more functions which are bound to keys.  Pressing the
+F1 function key will toggle the graph window between the full screen,
+called full-screen mode, and the graph window mixed with the screen menu
+and displayed graph entries, called partitioned screen mode. Pressing
+the F2 function key will pause the plotting, so that the user may
+take some time to study it.  Pressing F2 again will restart the graph.
+All of the keybinding are described in the HELP submenu.
+
+Lastly, the @code{vs} may be further customized with the functions
+@code{vs_bindkey(keycode, function)} and @code{vs_add_btn(function,
+name)}. @code{vs_bindkey()} works in exactly the same manner as
+@code{dd_bindkey()}, and binds a key to a function inside the virtual
+scope routines.  @code{dd_bindkey()} will _not_ work here.  The
+function @code{vs_add_btn()} may be used to add a button to the main
+@code{vs} screen menu. @code{name} is a pointer to the desired name
+of the button, and @code{function} is the callback function that will
+be assosciated with the function.  In general, this function should
+not interfere with the @code{vs} routines; in particular it should
+not change any of the vs configuration variables or output anything
+to the screen display.

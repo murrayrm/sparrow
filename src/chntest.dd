@@ -1,0 +1,162 @@
+/*
+ * chntest.dd - display for channel diagnostic
+ *
+ * RMM, 22 Jul 92
+ *
+ */
+
+/* Declare callbacks */
+extern int toggle_onoff(long), graph_data(long);
+extern int capture_data(long), dump_data(long);
+// extern int vscope(long);
+extern int dbg_servo(long), mem_usage(long);
+
+extern int adcap_toggle_capture(long), adcap_dump_file(long);
+static int adcap_tmp;
+
+/* User specified update routines */
+
+%%
+	        Channel Interface Module (RMM, 12 Feb 93)
+
+DevId	Num address 	index	name	      |       Channel summary
+ 0  %nchn0  %addr0	%index0	%name0        | 
+ 1  %nchn1  %addr1	%index1	%name1	      | Config file: %config
+ 2  %nchn2  %addr2	%index2	%name2	      | Number of devices:  %ndev
+ 3  %nchn3  %addr3	%index3 %name3	      | Number of channels: %nchn
+
+ChnId	DevId	off$set	factor	dumpf		raw	data	
+ 0	%dev0	%off0	%fac0	%dump0		%raw0	%val0
+ 1	%dev1	%off1	%fac1	%dump1		%raw1	%val1
+ 2	%dev2	%off2	%fac2	%dump2		%raw2	%val2
+ 3	%dev3	%off3	%fac3	%dump3		%raw3	%val3
+ 4	%dev4	%off4	%fac4	%dump4		%raw4	%val4
+ 5	%dev5	%off5	%fac5	%dump5		%raw5	%val5
+ 6	%dev6	%off6	%fac6	%dump6		%raw6	%val6	
+ 7	%dev7	%off7	%fac7	%dump7		%raw7	%val7	
+
+%F1	toggle servo (rate = %rate)	running = %run	overflow = %ovf
+%F2	capture data to buffer		capture = %cap	adcap = %adcap
+%F3	dump data to buffer		buffer = %dumpfile
+%F4     channel init 		        fcn test: chnid=%chnid %setfre=%freq
+%QUIT	%VS   %FG_CONFIG	%ADCAP	%ADDUMP	     %SERVO	%MEMLEFT
+%%
+# Device entries
+short:	%nchn0	chn_devtbl[0].size	"%5u";
+string: %name0  chn_devtbl[0].name      "%s";
+short:	%addr0	chn_devtbl[0].address	"0x%x";
+string: %addr0  chn_devtbl[0].devname	"%s";
+short:	%index0	chn_devtbl[0].index	"%5u";
+
+short:	%nchn1	chn_devtbl[1].size	"%5u";
+short:	%addr1	chn_devtbl[1].address	"0x%x";
+string: %addr1  chn_devtbl[1].devname	"%s";
+short:	%index1	chn_devtbl[1].index	"%5u";
+string: %name1  chn_devtbl[1].name      "%s";
+
+short:	%nchn2	chn_devtbl[2].size	"%5u";
+short:	%addr2	chn_devtbl[2].address	"0x%x";
+string: %addr2  chn_devtbl[2].devname	"%s";
+short:	%index2	chn_devtbl[2].index	"%5u";
+string: %name2  chn_devtbl[2].name      "%s";
+
+short:	%nchn3	chn_devtbl[3].size	"%5u";
+short:	%addr3	chn_devtbl[3].address	"0x%x";
+string: %addr3  chn_devtbl[3].devname	"%s";
+short:	%index3	chn_devtbl[3].index	"%5u";
+string: %name3  chn_devtbl[3].name      "%s";
+
+# Channel entries
+short:	%dev0	chn_chantbl[0].devid	"%5u";
+short:	%off0	chn_chantbl[0].offset	"%5u";
+double:	%fac0	chn_chantbl[0].scale	"%7.7g";
+double:	%dump0	chn_chantbl[0].dumpf	"%5u";
+short:	%raw0	chn_chantbl[0].raw	"%5d";
+double:	%val0	chn_chantbl[0].data.d	"%7.7g";
+
+short:	%dev1	chn_chantbl[1].devid	"%5u";
+short:	%off1	chn_chantbl[1].offset	"%5u";
+double:	%fac1	chn_chantbl[1].scale	"%7.7g";
+double:	%dump1	chn_chantbl[1].dumpf	"%5u";
+short:	%raw1	chn_chantbl[1].raw	"%5d";
+double:	%val1	chn_chantbl[1].data.d	"%7.7g";
+
+short:	%dev2	chn_chantbl[2].devid	"%5u";
+short:	%off2	chn_chantbl[2].offset	"%5u";
+double:	%fac2	chn_chantbl[2].scale	"%7.7g";
+double:	%dump2	chn_chantbl[2].dumpf	"%5u";
+short:	%raw2	chn_chantbl[2].raw	"%5d";
+double:	%val2	chn_chantbl[2].data.d	"%7.7g";
+
+short:	%dev3	chn_chantbl[3].devid	"%5u";
+short:	%off3	chn_chantbl[3].offset	"%5u";
+double:	%fac3	chn_chantbl[3].scale	"%7.7g";
+double:	%dump3	chn_chantbl[3].dumpf	"%5u";
+short:	%raw3	chn_chantbl[3].raw	"%5d";
+double:	%val3	chn_chantbl[3].data.d	"%7.7g";
+
+short:	%dev4	chn_chantbl[4].devid	"%5u";
+short:	%off4	chn_chantbl[4].offset	"%5u";
+double:	%fac4	chn_chantbl[4].scale	"%7.7g";
+double:	%dump4	chn_chantbl[4].dumpf	"%5u";
+short:	%raw4	chn_chantbl[4].raw	"%5d";
+double:	%val4	chn_chantbl[4].data.d	"%7.7g";
+
+short:	%dev5	chn_chantbl[5].devid	"%5u";
+short:	%off5	chn_chantbl[5].offset	"%5u";
+double:	%fac5	chn_chantbl[5].scale	"%7.7g";
+double:	%dump5	chn_chantbl[5].dumpf	"%5u";
+short:	%raw5	chn_chantbl[5].raw	"%5d";
+double:	%val5	chn_chantbl[5].data.d	"%7.7g";
+
+short:	%dev6	chn_chantbl[6].devid	"%5u";
+short:	%off6	chn_chantbl[6].offset	"%5u";
+double:	%fac6	chn_chantbl[6].scale	"%7.7g";
+double:	%dump6	chn_chantbl[6].dumpf	"%5u";
+short:	%raw6	chn_chantbl[6].raw	"%5d";
+double:	%val6	chn_chantbl[6].data.d	"%7.7g";
+
+short:	%dev7	chn_chantbl[7].devid	"%5u";
+short:	%off7	chn_chantbl[7].offset	"%5u";
+double:	%fac7	chn_chantbl[7].scale	"%7.7g";
+double:	%dump7	chn_chantbl[7].dumpf	"%5u";
+short:	%raw7	chn_chantbl[7].raw	"%5d";
+double:	%val7	chn_chantbl[7].data.d	"%7.7g";
+
+# Actions 
+button:	%F1	"<F1>"	channel_servo_button;
+button: %F2	"<F2>"	channel_capture_button;
+button: %F3	"<F3>"  channel_dump_button;
+button: %F4	"<F4>"  channel_init_button;
+button: %QUIT "QUIT" dd_exit_loop;
+# button: %VS  "VS" vs;
+button: %FG_CONFIG "FG_CONFIG" chntest_fcn_config;
+button: %setfre "setfreq" chntest_fcn_test;
+
+short: %chnid chntest_chnid "%d";
+double: %freq chntest_frequency "%5.5lf";
+button: %ADCAP  "ADCAP"		adcap_toggle_capture;
+button: %ADDUMP "ADDUMP"	adcap_dump_file;
+# button: %SERVO  "dbg_servo"	dbg_servo;
+
+button: %MEMLEFT "mem_usage"	mem_usage;
+
+# Status indicators
+short:	%ndev	chn_ndev		"%2u";
+short:	%nchn	chn_nchan		"%2u";
+
+short:  %cap	chn_capture_flag	"%1u";
+short:  %adcap	chn_capture_flag	"%1u";
+
+# short:	%run	servo_running		"%1u";
+# short:	%ovf	servo_overflow		"%4u";
+string:	%dumpfile	dumpfile	"%s";
+
+# Other entries
+string: %config		cfgfile		"%s";
+short:	%rate		isr_rate	"%5d";
+
+# Set the table and buffer names to avoid conflict
+tblname: chnmenu;
+bufname: chnbuf;
+

@@ -1,0 +1,130 @@
+@chapter Sparrow debugging support
+
+Sparrow includes several simple mechanisms for helping debug your
+programs.  These tools are designed to be low level debugging tools
+that can be run in real-time and have been optimized for speed and
+simplicity.
+
+@menu
+* message: debug/message.	debugging message support
+* flags: debug/flags.   	display flags
+* internal: debug/internal.   	internal information on debug library
+@end menu
+
+@node debug/message,debug/flags,,debug
+@section Debugging message support
+
+It is often desirable to include debugging messages (eg, printfs) in
+code, but for sparrow programs these messages can often interfere with
+the display.  Sparrow provides a mechanism by which messages from
+specific files (modules) can be turned on and off, different levels of
+messages can be selectively turned off, and output can be logged to a
+file or shown on the display [not implemented].  This mechanism is separate
+from the redirection of stderr (@ref{display/stderr}).
+
+Sparrow defines four functions that can be used for helping to print
+debugging messages: @code{dbg_info}, @code{dbg_warn}, @code{dbg_error}
+and @code{dbg_panic}.  Each of these functions has the calling format
+@example
+    #include "sparrow/dbglib.h"
+
+    void dd_<msgtype>(fmt, ...)
+@end example
+and the arguments are just the normal arguments to printf.  The
+response to the command will depend on the settings to these flags.
+
+Sparrow keeps track of which file a debugging message is coming from
+and lets you selectively turn on messages only from files that you
+want to see.  In addition, you can set flags to control which messages
+are displayed, so that you don't have to look at messages that you
+aren't interested in.  The functionality of sparrow is controlled via
+a set of flags and function calls. [Note: future versions will use a
+functiona call interface.]
+
+By default, debugging is turned off an no messages are processed.  To
+enable debugging, you need to set the variable @code{dbg_flag} to a
+non-zero value:
+@example
+    dbg_flag = 1;                   /* Turn on debug processing */
+@end example
+By itself, setting this variable will not do anything.  You must next
+define the modules (source files) for which you want to turn debugging
+on.  If you want to turn debugging on for all modules, just set the
+@code{dbg_all} flag:
+@example
+    dbg_all - 1;                /* Parse debugging for all modules */
+@end example
+
+If you wish to look at messages from only certain modules, you can
+create a list of modules to look at by using the @code{dbg_add_module}
+and @code{dbg_delete_module} functions:
+@example
+    dbg_add_module(``filename.c'')
+    dbg_delete_module(``filename.c'')
+@end example
+The module name should be (case-sensitive) filename in which the
+debugging calls apply.  Adding a module will cause messages from that
+file to be displayed/logged until it is deleted from the list.
+
+Finally, you must choose how you want the debugging messages to be
+recorded.  You can either have the message display on the screen or
+logged to a file.  To display the messages on the screen, use the
+@code{dbg_outc} flag:
+@example
+    dbg_outf = DBG_ALL;         /* print all types of messages */ 
+@end example
+The value of the flag is a bitmask that determines what messages are
+displayed.  The message types are given by @code{DBG_<msgtype>}, so if
+you only want to see error and panic messages, you would use
+@example
+    dbg_outf = DBG_ERROR | DBG_PANIC;
+@end example
+
+To log messages to a file, use the @code{dgc_openlog} and
+@code{dgc_closelog} files:
+@example
+    dbg_openlog("logfile.log"); /* turn on data logging to file */
+    ...
+    dbg_closelog();             /* turn off data logging to file */
+@end example
+The @code{dbg_openlog} function automatically turns on all types of
+messages; if you want to only log certain messages, use the
+@code{dbg_logf} variable, which has the same format as
+@code{dbg_outf}.  You can also leave the log file open and temporarily
+turn off logging by setting the @code{dbg_logf} variable to zero.
+Finally, you can force a flush of the log file by calling
+@code{dbg_flushlog}.
+
+@node debug/flags,debug/internal,debug/message,debug
+@section Display flags
+
+In addition to displaying and logging error messages, sparrow also has
+a capability to set text flags that appear on the upper right corner
+of the display.  These can be used to display internal status.  They
+are currently undocumented because I haven't figured out how to get
+them to work in curses.
+
+@node debug/internal,,debug/flags,debug
+@section Internal information
+
+This section will be used to document internal information about how
+the debugging library works.
+
+@c @subsection Hooks for debug messages
+@c 
+@c The @code{dbg_<msgtype>} functions are implemented using an internal
+@c function @code{_dbg_printf} that is called with the type of message.
+@c This then looks at the @code{dbg_outf} and @code{dbg_logf} flags to
+@c determine if a message should be printed.  The printing of messages is
+@c done through two internal hooks that can be overidden for special
+@c processing: @code{dbg_out_hook} and @code{dbg_log_hook}.  These
+@c functions default to the behavior described above, but can be
+@c overriden by resetting them to point to a different function.  The
+@c calling format is
+@c @example
+@c     void _dbg_printf(enum dbg_type type, char *module,
+@c         int line, char *fmt, ...)
+@c @end example
+@c Note that this uses the @code{stdarg} mechanism for passing variable
+@c arguments.
+

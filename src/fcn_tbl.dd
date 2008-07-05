@@ -1,0 +1,60 @@
+/* function generator channel configuration display table */
+/* all necessary declarations are done in fcn_gen.c */
+%%
+
+     Function Generator Channel Configuration Table (ELW, 21 Oct 93)
+
+--------------------------------------------------------------------------
+|Channel: %chn1        |Channel: %chn2          |Channel: %chn3          |
+|                      |                        |                        |
+|                      |                        |                        |
+| Type       %type1    | Type       %type2      | Type       %type3      |
+| Frequency  %freq1    | Frequency  %freq2      | Frequency  %freq3      |
+| Amplitude  %amp1     | Amplitude  %amp2       | Amplitude  %amp3       |
+| Phase      %phs1     | Phase      %phs2       | Phase      %phs3       |
+| DC Offset  %off1     | DC Offset  %off2       | DC Offset  %off3       |
+|                      |                        |                        |
+|                      |                        |                        |
+| %UPDATE1             | %UPDATE2               | %UPDATE3               |
+|                      |	                |                        |
+|                      |                        |                        |
+
+
+%RETURN   %SAVE%savefile     %LOAD%loadfile     %SCAN
+
+
+%%
+
+short:   %chn1     fcn_chnid[0]      "%3d";
+double:  %freq1    fcn_freq[0]       "%lf";
+double:  %amp1     fcn_amp[0]        "%lf";
+short:   %phs1     fcn_phase[0]      "%d";
+double:  %off1     fcn_dc_offset[0]  "%lf";
+short:   %type1    fcn_type[0]       "%d";
+button:  %UPDATE1  "UPDATE VALUES"  fcn_channel_update  -userarg=0;
+
+short:   %chn2     fcn_chnid[1]      "%3d";
+double:  %freq2    fcn_freq[1]       "%lf";
+double:  %amp2     fcn_amp[1]        "%lf";
+short:   %phs2     fcn_phase[1]      "%d";
+double:  %off2     fcn_dc_offset[1]  "%lf";
+short:   %type2    fcn_type[1]       "%d";
+button:  %UPDATE2  "UPDATE VALUES"  fcn_channel_update  -userarg=1;
+
+short:   %chn3     fcn_chnid[2]      "%3d";
+double:  %freq3    fcn_freq[2]       "%lf";
+double:  %amp3     fcn_amp[2]        "%lf";
+short:   %phs3     fcn_phase[2]      "%d";
+double:  %off3     fcn_dc_offset[2]  "%lf";
+short:   %type3    fcn_type[2]       "%d";
+button:  %UPDATE3  "UPDATE VALUES"  fcn_channel_update  -userarg=2;
+
+button:  %SCAN    "SCAN"    fcn_channel_scan  -userarg=0;
+button:  %SAVE    "SAVE"    fcn_channel_save;
+string:  %savefile  fcn_save_file  "%s";
+button:  %LOAD    "LOAD"    fcn_channel_load;
+string:  %loadfile  fcn_load_file  "%s";
+button:  %RETURN  "RETURN"  fcn_channel_return -fg=RED;
+
+tblname: fcn_tbl;
+bufname: fcnbuf;

@@ -1,0 +1,65 @@
+@unnumberedsubsec function generator (ELW, 3 Oct 93)
+Function generator device.  This is a psuedo-device which does
+not actually drive external hardware; it generates a function
+or reference signal in software through the sparrow channel 
+interface.  Signals are generated in real time and placed
+in a channel.
+
+Currently, the device may be used to generate a sine, square,
+or triangle waveform.  The frequency, amplitude, dc offset,
+and phase of the signals may all be specified.  Use the standard
+@code{-scale} and @code{-offset} flags to set the amplitude and
+phase for a channel, respectively.  To set the type of waveform
+generated, use the @code{-type} flag with the appropriate 
+@code{value}:  0 for sine wave, 1 for square, and 2 for triangle.
+Use the flags @code{-frequency} and @code{-dc_offset} to set
+those parameters.  Default values are type=0, frequency=1,
+offset=0, scale=1, and dc_offset=0. All of these flags may be
+used in both device and channel definition lines. The @code{-index}
+flag is not used.
+
+The function will be generated at the specified frequency (real 
+time) if and only if the function generator device driver is
+being called at the servo frequency.  For instance, this occurs
+when there is only one function generator device being used
+(with possible multiple channels) and @code{chn_read()} is
+being called once within a servo routine, the usual thing.
+This condition is not met if the servo routine is not running,
+@code{chn_read()} is not called exactly once during the servo
+routine, or more than one function generator device is being
+used.
+
+The function @code{int fcn_change_frequency(int chnid, double frequency)}
+is provided so that the frequency for a channel can be changed at
+any time.  Here @code{chnid} is the absolute channel number, where
+the numbering starts at 0 as usual, and @code{frequency} is the
+desired new frequency.  The return value is 1 upon success and -1 
+if @code{chnid} corresponded to a non-function generator channel.
+
+The function @code{chn_config()} (no arguments) may be used to
+adjust function generator channel parameters, save them to file,
+and load saved files.  The function uses a display table to 
+perform these tasks.  The parameters for three channels are 
+displayed on the screen.  To change any of the values for a particular
+channel, enter new
+values using the standard display methods and then press the
+"UPDATE VALUES" button for that channel.  The 5 numbers are 
+then updated all at once. 
+
+When @code{chn_config()} is first called it scans through
+the channel table for function generator channels and fills in
+the parameter lists with any valid function generator 
+channels it finds.  In order to fill any of the parameter lists
+with the current numbers from a particular channel, enter the
+number of the channel you wish to use at the top of the 
+parameter list, and then press the "SCAN" button.  If a value of
+-1 is entered for any of the channels, then the "SCAN" function will
+not attempt to fill the corresponding list of parameters.
+
+To save the three displayed parameter lists, enter a filename to 
+save to and press the "SAVE" button.  The parameters are saved
+in ascii format.  To load a saved file, enter the filename of
+the file in the correct place and press the "LOAD" button.
+The file must have been previously saved using the save routine.
+
+

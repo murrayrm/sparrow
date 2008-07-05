@@ -1,0 +1,80 @@
+              Release Notes for "sparrow" module
+
+
+Release R1-01g (Thu Sep 27 21:35:33 2007):
+	Improved stderr processing: messages sent to stderr are now printed
+	out at the same speed as they are received, eliminating a possible
+	bottleneck when using sparrow.  If you use error logging via
+	errlog_init() function, this now binds ^O to a function that turns
+	off all error messages (not printed, not buffered).
+
+	Changes documented in texinfo files.  Also added back the dispexmp
+	unit test.
+
+Release R1-01f (Sat Apr 21 11:18:31 2007):
+	Added user documentation for cdd -c (in display.txi)
+
+Release R1-01e (Wed Apr 18 11:47:12 2007):
+	This release adds a -c flag to cdd that enables generation of
+	separate header and code files for a dynamic display (.dd) file.
+	This can be used when you want to use the definitions corresponding
+	in more than one file.
+
+	No change in functionality if -c is not specified.
+
+Release R1-01d (Sat Mar  3  8:20:59 2007):
+	Minor release to fix Makefile problem that was causing warnings
+	when new packages were created.  The 'cdd' program was incorrectly
+	listed in the BIN_LINKS list.  No changes to interface or
+	functionality.
+
+Release R1-01a (Sat Jan 27 19:38:00 2007):
+	Minor release to fix problems with C++ linking (errlog functions).
+	Changing the revision number to 01 to reflect that fact that this
+	requires a recompile (this really should have been done at the
+	time that we make the original C++ compatible versions in R1-00e).
+
+Release R1-00f (Sat Jan 27 17:33:58 2007):
+	This release fixes the Makefile so that the library is properly
+	compiled in a single pass.  Did this by creating a local copy of
+	binary, in addition to the binary that YaM makes.  A bit of a waste,
+	but it seems to work find.
+
+	Note: I tried to do this by setting up dependences on
+	$(YAM_TARGET)/cdd, but this did not make it past the YaM make
+	process.  I *think* the approach I used is kosher, but could have
+	some unforeseen issues when we get to a multi-target environment.
+
+Release R1-00e (Mon Jan 22 22:18:27 2007):
+  	Fixed for mixed C/C++ operation.
+
+Release R1-00d (Sat Jan 13 20:14:06 2007):
+	This release contains a few small changes to the Makefile.yam to
+	allow proper compilation under OSX.  Mainly reset things to what
+	we already had in dgc/trunk.  No changes, except color should work
+	again.
+
+Release R1-00c (Wed Jan 10 22:34:01 2007):
+	<* Pleaase insert a release notes entry here. If none, then please delete these lines *>
+
+Release R1-00b (Tue Jan  9 14:53:31 2007):
+	<* Pleaase insert a release notes entry here. If none, then please delete these lines *>
+
+Release R1-00a (Sun Jan  7 19:45:00 2007):
+	This is the initial yam version of sparrow, copied over from
+	the DGC trunk.  It is not yet been converted to use YaM makefiles
+	or other features.  Basically just the initial condition for this
+	module.
+
+Release R1-00 (Sat Jan  6 17:04:51 2007):
+	Created.
+
+
+
+
+
+
+
+
+
+

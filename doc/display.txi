@@ -1,0 +1,670 @@
+@c -*- texinfo -*-
+
+@chapter Dynamic Display Package
+
+The dynamic display package provides a simple method for constructing a
+user interface for a real-time control program.  It provides a set of
+functions that can be used to build a screen-oriented interface which
+allows real-time display and modification of user variables as well as
+the execution of commands within the control package.
+
+@menu
+* intro: display/intro.		introduction to the display package
+* manager: display/manager.	display manager interface
+* cdd: display/cdd.		display description compiler
+* example: display/example.	sample program
+* features: display/features.   advanced features
+* table: display/table.		description table format
+* bugs: display/bugs.		known bugs in display package
+@end menu
+
+@node display/intro,display/manager,,display
+@section Introduction
+
+The overall usage of the dynamic display interface is similar to that of
+widget sets in graphical user-interfaces, but much more rudimentary.  A
+display is constructed by placing a number of objects on the screen
+which can be selected and modified.  Each object represents a particular
+instance of a type of data.  For example, a data object is used to
+display the current value of a variable and also provide a means of
+changing the value of that variable.  A button object can be defined to
+allow certain functions to be executed by the user when the button is
+pressed.  The function attached to the button may alter the flow of the
+real-time control program or perform operations which otherwise modify
+the operating environment.
+
+The dynamic display package consists of two pieces: a display table
+which describes the layout of the screen, and a display manager which
+responds to user input and updates values on the screen.
+
+The display manager is intended to be used as the foreground task for a
+servo loop.  That is, the control process is executed at a fixed rate in
+an interrupt service routine, while the display manager uses the
+remaining CPU cycles to display the current values of the data objects
+and execute user routines specified by pressing button objects.  The
+display manager is started by calling the @code{dd_loop} function.  The
+display manager is described in more detail below.
+
+The screen description for the display manager is specified by building a
+table which describes each object to be displayed on the screen.  Once
+the table has been built, program control is passed to the display
+manager.  In the current implementation, the display is statically
+defined, usually in a header file that is included in the program source
+code.  A rudimentary display compiler, @code{cdd}, can be used to
+facilitate the construction of the display table.  The format of the
+display table is described in more detail below.
+
+The header file @code{"display.h"} defines the basic data types
+used by the display package and provides function prototypes.  All
+functions defined in the dynamic display module are prefixed with the
+string @code{dd_}.
+
+@node display/manager,display/table,display/intro,display
+@section The Display Manager
+
+The display manager is responsible for responding to user input from the
+keyboard and keeping the screen up to date.  The display manager
+repeatedly scans the values displayed on the screen to insure that they
+are current and interprets user commands if they are present.
+
+Commands can be performed on an object by selecting the object and
+pressing a key which has an appropriate action bound to it.  The
+currently selected object is displayed in reverse video.  Valid actions
+on a selected object include modifying its value and executing a
+function associated with the object.  The former action is typical for
+data objects, which represent variables in the program, while the later
+is typical for button objects which execute user functions.
+
+The selected object can be changed using cursor motion commands.  By
+default, these are bound to the movement keys used by the @code{vi}
+editor.  The arrow keys can also be used to move the cursor.
+
+The default key bindings are:
+@example
+q     exit-loop         exit from the main display manager loop
+=     input-item        input a new value for an object
+h     left-item         move the cursor to the left
+j     down-item         move the cursor to the left
+k     up-item           move the cursor to the left
+l     right-item        move the cursor to the left
+^L    redraw            clear and redraw the display
+<CR>  execute           execute the object callback function
+@end example
+In addition, the arrow keys are bound to the appropriate cursor movements.
+These bindings can be changed or extended by using the @code{dd_bindkey}
+function.  @xref{display/keys}.
+
+@node display/cdd,display/example,display/table,display
+@section Building an interface with @code{cdd}
+
+The display manager uses a table to describe the layout of the screen.
+To facilitate the construction of a display screen, the @code{cdd}
+program can be used to convert a pictorial description of the screen
+into a display table.
+
+The display description file is divided into three sections: a header, a
+screen description, and a trailer.  The header portion declares external
+variables and functions and is included verbatim in the file generated
+by @code{cdd}.  The screen description section contains a pictorial
+description of the appearance of the screen, with escape sequences to
+mark locations on the screen where objects will be placed.  The trailer
+section of the file describes how to display data objects and what
+action to perform when button objects are pressed.
+
+The header section of the display description file should consist of C
+code which defines all variables and functions which are referenced
+elsewhere in the display description file.  If the display accesses a
+large number of global variables, it may be convenient to include the
+display table file generated by @code{cdd} @emph{after} the global
+variables are declared.  In this case, it is not necessary to explicitly
+declare the global variables in the header section of the display file.
+
+The screen description section should contain a sequence of lines which
+describes how each line on the screen should look.  Text in this
+section will be generated exactly as it appears in the file.  Items that
+begin with the character @kbd{%} are treated as special entries.  These
+entries mark locations on the screen where a data or button object will
+be placed.  Each escape sequence should contain a corresponding entry in
+the trailer section of the description file.  For example, the line
+@example
+Current value: %cur
+@end example
+@noindent
+might be used to show the current value of a variable.  The string
+@code{%cur} will be replaced with a reference to the appropriate
+variable.  In addition, the character @kbd{$} may be used to help 
+control the screen appearance.  Whenever this character appears in
+the description section, the displayed value of the previous object
+entry (beginning with @kbd{%}) on the same row 
+(if there is one) will be truncated at this
+position if it would otherwise write past the @kbd{$}.  Whenever
+a value is truncated, the character @kbd{>} is printed at the end
+of the value to indicate that there was more.  The @kbd{$} may appear
+inside variable names or labels; it will be taken out when the 
+description section is read. This can be used to prevent some entries
+from overwriting others.  See the length flag below for another option
+for controlling the maximum length of displayed values.
+
+The last section in the description file contains information which
+describes the objects which will appear on the screen.  Each variable or
+button should contain an entry in this section.  The format of an entry
+is
+@example
+object-type: location args ... [-flag ...] [-option=value ...];
+@end example
+@noindent
+where the arguments depend on the type of object being defined.  The
+following object-types are defined
+@example
+label:   location "text"
+button:  location "text" callback [-userarg=value]
+byte:    location variable-name "fmt-string" [-options]
+short:   location variable-name "fmt-string" [-options]
+double:  location variable-name "fmt-string" [-options]
+string:  location variable-name "fmt-string" [-options]
+message: location variable-name "fmt-string" [-options]
+custom: location [-options]
+@end example
+@noindent
+For data objects, @code{"fmt-string"} should be a @code{printf} format
+string which is suitable for displaying the data (for example
+@code{"%5d"} for integers and @code{"%5g"} for floats/doubles).  By
+default, button and data objects are marked as selectable.
+
+There are two types of variables that can be used for strings: The
+@code{string} type is used for a statically declared character array
+that contains that data that should be displayed.  It may be of any length
+and its value can be set using the sparrow input commands.  
+The contents of this array are only display when the screen is redrawn,
+so any changes to the contents must be followed by a call to
+@code{dd_redraw} or @code{dd_refresh}.
+
+The @code{message} type is used for strings that are referenced via a
+pointer.  In this case, the variable should be a pointer to a
+null-terminated string (@code{char *}) and the display will be updated
+whenever this address changes.  The value of the string can not be set
+through the display interface.  This type of data element is most useful
+when one wishes to display one of a set of statically defined messages.
+
+Several options are available to modify the default data entries created
+by the data types listed above.  These options allow each of the
+attributes for a display table entry to be modified.
+@example
+-callback=fcn   add a callback function to an object
+-data=name      give the name of the variable to be displayed
+-format="fmt"   specify the format string
+-idname=name    generate a preprocessor symbol giving entry offset
+-manager=fcn    display an alternate interface manager function
+-nosave         don't save/load the object when the display table 
+                  is saved/loaded
+-readonly       don't allow the object to be selected/modified
+-size=number    set the storage size of an object
+-userarg=arg    define argument to be passed to callback function
+-length=len     the maximum length of the object's displayed value
+@end example
+
+Once the display file has been created, it can be ``compiled'' into a table
+using the @code{cdd} command.  The typical usage is
+@example
+cdd -o disptable.h disptable.dd
+@end example
+which compiles the table defined in @file{disptable.dd} and produces a
+header file @file{disptable.h}.  This header file can then be included in
+your code and will define the display table.  The table will be defined with
+static scope, to avoid namespace conflicts.
+
+If you prefer to have a separate header file and source code file for the
+display table, you can use the format
+@example
+cdd -c disptable.c -h disptable.h disptable.dd
+@end example
+This will create a header file with any definitions that are required to
+define the table (including an @code{extern} declaration of the table
+itself) and a code file that defines the actual table.  The header file
+automatically includes @file{display.h}, which is assumed to be in the
+current include path.  The @code{-p} flag can be used to specify a prefix
+for this path:
+@example
+cdd -c disptable.c -h disptable.h -p sparrow disptable.dd
+@end example
+
+@node display/example,,display/cdd,display
+@section Sample program
+
+@ifinfo
+The following sample programs may be found in the sparrow demo
+directory, @file{e:\sparrow\demo}, under the names @file{dispexmp.dd},
+@file{dispexmp.c}, and @file{dispexmp.h}.
+@end ifinfo
+@ifnotinfo
+The following sample programs illustrate the use of the dynamic display
+library.  The program @file{example} puts up a display screen which
+shows several different data objects and allows the user to change
+variable values as well as view dynamically changing data.  The files
+listed are:
+@end ifnotinfo
+@table @t
+@item dispexmp.dd
+The screen description file used to generate the display description
+table.  This file is processed by @code{cdd} to produce the header file
+@code{dispexmp.h}.
+
+@item dispexmp.c
+C code to execute the display manager.  @code{dispexmp.c} is responsible
+for initializing the display package and starting the display loop.
+Callback functions for the display buttons and data objects are also
+defined in this file.  Note that the @code{user_quit} function returns
+@code{DD_EXIT_LOOP}.  Pressing the @code{QUIT} button on the display
+will cause the display manager to return control to the calling
+function.  The function @code{user_clock} is an example of a customized
+display interface function.  In this case, the details of the display
+interface are handled by the standard function @code{dd_short}.
+
+@item dispexmp.h
+Header file generated by @code{cdd}.  This file is generated using the
+command
+@example
+cdd -o dispexmp.h dispexmp.dd
+@end example
+@end table
+
+@ifnotinfo
+@page
+@unnumberedsubsec dispexmp.c
+@example
+@include dispexmp.cxi
+@end example
+
+@page
+@unnumberedsubsec dispexmp.dd
+@example
+@include dispexmp.ddi
+@end example
+
+@page
+@end ifnotinfo
+
+@node display/features,,,display
+@section Advanced features
+
+@menu
+* rebind: display/rebind.       dynamic binding of data
+* color: display/color.         setting the color of items
+* strings: display/strings.	functions for manipulating strings
+* keys: display/keys.           mapping keys to callbacks
+* stderr: display/stderr.       redirection of stderr
+* load: display/load.           saving and loading display tables
+@end menu
+
+@node display/rebind,,display/color,display/features
+@unnumberedsubsec Dynamic Data Binding
+
+The @code{dd_rebind} function allows a display entry to be rebound at run
+time to a new data variable.  The calling format is
+@example
+dd_rebind("varname", &newval, display)
+@end example
+will reset the entry for @code{varname} in the table @code{table} from its
+original data object to the object pointed to by @code{newval}.
+
+The display library normally requires that variables be globally defined so
+that they can be linked into the display table at compile time.  The
+@code{dd_rebind} function can be used to display variables that are not
+defined in a global context.  To define a variable that is bound at
+runtime, use the syntax @code{@@name} for the variable name in the display
+description.  For example, the entry
+@example
+int: %location @@varname "%5d"
+@end example
+will generate a table entry that can be bound to a data object at run time
+using the @code{dd_rebind} call given above.
+
+Notes:
+@itemize
+@item
+When a table entry is rebound, it must be assigned to a variable that is of
+the same type as originally declared in the display description.  No
+checking is done at run time to make sure that the variable is of the right
+type.
+
+@item 
+The address that is used for the rebound variable must continue to exist for
+the duration of the time that the table is displayed.  In particular, you
+should not rebind an entry to a variable that is local to a function unless
+it is declared as a static variable.  Binding a variable that is part of a
+dynamically allocated data structure can be done as long as the memory is
+not freed while the table is being displayed.
+@end itemize
+
+@node display/color,display/rebind,display/strings,display/features
+@unnumberedsubsec Handling the Text Color
+
+The text on the display screen has default settings to black and gray.
+These are used by the foreground and background fields.
+@code{dd_setcolor} resets these text colors at a given offset location.
+The color change in text will show up on the display screen immediately.
+
+@code{dd_setcolor} changes the foreground and background
+fields in the type definition struct_entry (@code{DD_IDENT}). The
+calling format is
+@example
+dd_setcolor(fgcolor, bgcolor)
+@end example
+Initially
+all entries are declared with a default foreground of light gray and a
+default background of black.
+
+@node display/strings,display/color,display/keys,display/features
+@unnumberedsubsec Functions for manipulating strings
+
+The @code{dd_setlabel} function can be used to change the string
+associated with a button or other text object.  The format of the call is
+@example
+dd_setlabel(offset, string)
+@end example
+where @code{offset} is the offset of the desired text object in the
+display table and can be retrieved using the @code{-idname} option in
+@code{cdd}. 
+
+String variables can be created using the @code{string} object type in
+@code{cdd}.  String variables are stored in a statically defined array
+allocated by the user.  Unlike other data objects, string variables are
+@emph{not} updated automatically since comparing strings to one another
+can be a slow operation and typically the values of string variables do
+not change very often.  To force an update of a string variable, use the
+@code{dd_refresh} function.
+
+In addition to the @code{label} and @code{string} object types, the
+@code{message} object type can be used for strings that are changed by
+updating a pointer to the string.  This type of data object is often
+appropriate when a set of messages is available and a single pointer to the
+relevant message is updated based on a change in system state.
+@xref{display/cdd}.
+
+@node display/keys,display/strings,display/stderr,display/features
+@unnumberedsubsec Binding keys to callbacks
+
+The @code{dd_bindkey} function can be used to bind a key to a callback.
+For example, the function keys can be bound to execute commonly used
+functions.  To bind a key to a callback, use
+@example
+dd_bindkey(key, callback)
+@end example
+where @code{keycode} is a ASCII character, usually enclosed in single
+quotes, and @code{callback} is a function which will be executed when
+the key is pressed.
+
+To access non-ASCII keys (such as the function keys), include the file
+@file{keymap.h} which defines the following keycodes:
+@example
+K_LEFT, K_RIGHT, K_UP, K_DOWN     Arrow keys (on keypad)
+K_HOME, K_END, K_PGUP, K_PGDN     Other movement keys
+K_INS, K_DEL, K_BS                Editing keys
+K_F1, K_F2, etc                   Function keys
+K_SHIFT_F1, K_SHIFT_F1, etc       Shifted version of function keys
+K_CNTRL_F1, K_CNTRL_F1, etc       Control + function key
+K_ALT_F1, K_ALT_F2, etc           Alt + function key
+@end example
+
+The routines used to implement key bindings can also be used
+independently of the display manager.  The following functions are used
+to create and modify key binding tables:
+@example
+KM_BINDING *km_createmap()          create a new key map
+KM_BINDING *km_copymap(dst, src)    copy a key map
+void km_bindkey(keymap, key, fcn)   bind a key to a function
+void km_freemap(keymap)             free key map memory
+int km_unbound()                    callback for unbound keys
+@end example
+These functions are documented more fully in the sparrow reference manual.
+
+The display manager uses the keymap @code{dd_keymap} to define its
+current key bindings.  By reassigning the value of @code{dd_keymap}
+inside the user's code, it is possible to switch between different sets
+of key bindings.  For example, the code fragment
+@example
+(void) km_copymap(dd_keymap, mode1_map)
+@end example
+can be used to override the current display keymap with a new map.  By
+creating multiple key maps and copying them into dd_keymap when mode
+changes occur, it is possible to remap the entire keyboard
+instantaneously.  The static keymap @code{dd_defkeymap} contains the
+default key bindings for the display manager.  It is used in
+@code{dd_init} to initialize the @code{dd_keymap}.  All subsequent
+changes to the key bindings must be made to @code{dd_keymap}, either
+directly or via the @code{dd_bindkey} function.
+
+Future extension are planned which will allow key bindings to be
+specified in the display description file read by @code{cdd}.  For now,
+the user must use the keymap routines described above in order to change
+keyboard mappings for different screens.
+
+@node display/stderr,display/keys,display/load,display/features
+@unnumberedsubsec Redirection of stderr (and cerr)
+
+When @code{dd_init} is called, it redirects all output sent to stderr (and
+cerr, if you are using C++) to an internal pipe.  This information is
+displayed on the prompt line whenever it is received and an audible alarm
+(beep) is generated to alert the user.
+
+The audible alarm gets annoying, you can turn it off using @code{dd_quiet}
+or back on using @code{dd_noisy}.  To toggle the status of the beep, use
+the @code{dd_toggle_beep_cb} function, which can be bound to a key.  In the
+default keymap, @code{dd_toggle_beep_cb} is bound to ^G.
+
+You can also keep a buffer of old error messages and scroll through these
+messages on the prompt line (and eventually elsewhere).  To set up an error
+buffer, use the @code{dd_errlog_init} function
+@example
+int dd_errlog_init(len)
+@end example
+where @code{len} is the desired length of the buffer.  To scroll through the
+error buffer, use the @code{dd_errlog_prev} and @code{dd_errlog_next}
+callbacks.  These can be bound to ^P and ^N in the default keymap
+using the function
+@example
+dd_errlog_bindkey()
+@end example
+This also binds ^A and ^E to move to the beginning and end of the
+error buffer and ^O to toggle whether stderr messages are displayed (and
+saved in the buffer).
+
+@node display/load, display/stderr,,display/features
+@unnumberedsubsec Saving and Loading Display Table Values
+
+The @code{dd_load} and @code{dd_save} functions allow the variables used
+in the display table to be loaded from or saved to a file.  To save the
+current display table variables to a file use
+@example
+dd_save(filename)
+@end example
+where the argument to @code{dd_save} is the name of the file where the
+display variables should be saved.  The syntax of the @code{dd_load}
+function is same as that of the @code{dd_save} function.
+
+The format of the file created by @code{dd_save} and read by at
+@code{dd_load} is:
+@example
+var1          100
+var2          300
+var3          34.5
+var4          hello
+var5          10
+@end example
+where @code{var1} is the name of the first variable specified in the
+@code{display.dd} file (the screen description file) trailer, and @code{100}
+is its current value.  The list created by the @code{dd_save} function is in
+the same order that the variables are specified in the @code{display.dd}
+file trailer.  When using the @code{dd_load} function to load values for the
+display variables, all display variables do not have to be specified.  For
+example, if the list above was created using @code{dd_save}, then a valid
+file for use with @code{dd_load} is:
+@example
+var4          goodbye
+var1          200
+@end example
+Note that all variables do not have to be listed in any particular order.
+
+The loading and saving of each variable in the display table can be
+turned off by specifying the @code{-nosave} flag in the
+@code{display.dd} file trailer.
+
+Sometimes it is useful to load/save the variables for display tables other
+than the current one.  The functions @code{dd_tbl_load} and
+@code{dd_tbl_save} are similar to the @code{dd_load} and @code{dd_save}
+functions except that they act on the display table of your choice,
+rather than the current table.  The syntax is:
+@example
+dd_tbl_load(filename,tbl)
+dd_tbl_save(filename,tbl)
+@end example
+where tbl is the name of the display table that you want to load or save.
+
+@node display/table,display/cdd,display/manager,display
+@section Creating a display table by hand
+
+The dynamic display module generates a display from a statically defined
+@emph{display table} which describes the appearance of the screen.  This
+table can either be generated by hand or using the display compiler
+program @code{cdd} (@pxref{display/cdd}).  This section describes the
+format of the display table and gives details about the operation of the
+display manager on different types of objects.
+
+The display table consists of a list of items corresponding to objects
+on the screen.  Each object has a set of actions associated with it
+which enable the user to interact with the program.  Objects include
+labels, buttons, and data.  Each entry in the display table describes
+the location of the object on the screen, a function to control
+interaction with the object, and a set of attributes describing the
+object.
+
+The general format for an object in the display table is:
+@example
+@{x, y, addr, mgr, fmt, buf, sflg, cbk, arg, type@}
+
+int x, y        location of the object on the screen
+char *addr      address of the object variable
+int (*mgr)()    object interface manager
+char *fmt       formatting string
+char *buf       buffer storage for object value
+int sflg        select flag; 1 if object can be selected
+int (*cbk)()    function to call when button is pressed
+long arg        user argument passed to callback function
+int foreground  foreground color
+int background  background color
+int type	type of object (Data, Label, Button, etc)
+@end example
+@noindent
+Not all fields are used for each type of object and some fields are used
+for storing data in different ways.  The interface with the object is
+controlled by the object interface function, @code{mgr}.  This function
+responds to actions requested by the display manager and determines how
+the function is updated, displayed, and modified.
+
+The simplest class of object is a @emph{label}.  A label consists of a string
+which is displayed at some location on the screen.  The label cannot be
+modified at any time.  The string to be printed is stored in the
+@code{addr} attribute of the object.  For standard labels, the
+@code{mgr} attribute is set to @code{dd_label}.  The macro
+@example
+DD_label(x, y, string)
+@end example
+@noindent
+can be used to define a table entry for a label.
+
+A @emph{data object} is used to represent a variable in program memory.  The
+value of the variable is displayed on the screen and can be modified by
+the user via the display manager.  To avoid redrawing all variables
+which appear on the screen, the standard display interface functions
+keep track of the displayed value of the variable, stored in the
+@code{buf} attribute, and only redraw the value when it changes.  For a
+data object, the @code{addr} attribute gives the memory address of the
+variable to be displayed and the @code{fmt} attribute gives the format
+string which will be used to print the value of the variable (using
+@code{printf}).  If the @code{sflg} attribute is true, the variable may
+be selected using the cursor motion commands and the value of the
+variable can be changed.  Standard interface managers are available for
+displaying the basic C data types: @code{dd_short}, @code{dd_long},
+@code{dd_byte}, @code{dd_float}, @code{dd_double}.  Sample entries for
+integer and double objects are:
+@example
+@{Data, x, y, &ivalue, dd_short, "%4d", buf, 1@}
+@{Data, x, y, &dvalue, dd_double, "%4g", buf+2, 1@}
+@end example
+@noindent
+The buffer pointer (@code{buf} in the preceding example) must contain
+enough storage to store the value of the variable.
+
+A @emph{button} is an object which can be selected (or pressed) and
+performs an action.  The button label describes the text which is
+printed on the screen.  A button object also has a callback function
+associated with it, which is called when the button is pressed.  The
+format for a button entry is:
+@example
+DD_button(x, y, "name", callback_function)
+@end example
+@noindent
+The function @code{callback_function} must be declared previous to the
+item definition.
+
+When a button object is pressed (by hitting the @kbd{<CR>} key while the
+object is selected), the callback function for the button is executed.
+An optional argument can also be specified (using the general form of an
+object entry) which is passed to the function when it is invoked.  The
+return value of the callback function is used to determine the
+subsequent action of the display manager.  If the callback function
+returns @code{DD_EXIT_LOOP} then the display manager is terminated and
+control returns to the user program.
+
+It is also possible to associate a callback function with a display
+variable.  This is useful when the program must take an action whenever
+the value of a variable is changed.  The callback function is called in
+the same way as the button object callback.
+
+@node display/bugs,,,display
+@section Technical details
+
+It is sometimes desireable to set the color and text of items in a
+display that not the current display.  The @code{dd_tbl_setlabel} and
+@code{dd_tbl_setcolor} are similar to the @code{dd_setlabel} and
+@code{dd_setcolor} functions respectively but act on the display table
+of your choice rather than the current display table. The functions are
+called as follows, to change properties in the display table called
+@code{tbl}:
+@example
+dd_tbl_setlabel(tbl, offset, string)
+dd_tbl_setcolor(tbl, offset, bg_color, fg_color).
+@end example
+@noindent
+Unlike the versions which work on the current table,
+@code{dd_tbl_setlabel} and @code{dd_tbl_setcolor} do @emph{not} redraw
+the item after it has been changed.
+
+@cindex dd_loop
+@cindex hooks
+You can add function calls to the main display look by using the
+@code{hook_add} function to add a hook function to the @code{dd_loop_hooks}
+hook list.  This is the method used by the capture and vscope modules to
+insert function calls into the display look.  For example, vscope using the
+following call to allow screen updates:
+@example
+#include "hooks.h"
+extern HOOK_LIST *dd_loop_hooks;
+extern int vs_update_graph(void);
+
+hook_add(dd_loop_hooks, vs_update_graph);
+@end example
+If the return status from the user function is negative, the remaining hooks
+in the list are not called.  So you should normally return 0 from a hook
+function unless you really know what you are doing.
+
+The following are known bugs in the display module:
+@itemize @bullet
+@item
+User arguments can either be an identifier or a number, but not a more
+complicated expression.  Eventually, all attributes should allow
+complete C expressions to be used instead of just names and numbers.
+This can be circumvented by using macros to define complicated
+expressions.
+
+@end itemize

@@ -1,0 +1,61 @@
+/*
+ * display file for test program
+ *
+ * RMM, 22 Jul 92
+ *
+ */
+
+/* Declare callbacks */
+extern int toggle_onoff(long), user_quit(long), graph_data(long);
+extern int capture_data(long), dump_data(long);
+
+extern int ival_callback(long), dval_callback(long);
+
+/* User specified update routines */
+extern int user_clock(DD_ACTION, int);
+
+%%
+01			    Dynamic Display Module
+02			       RMM, 21 Jul 92
+03
+04 Data items:
+05   Use '=' to change entries in value column.
+06   Mirrored values should update automatically (not selectable)
+07  Callback values should update via function call (not selectable)
+08
+09    type	value	mirror	callback
+10    -----	-----	------	--------
+11    Integer	%ival	%ivalm	%ivalc
+12    Double	%dval	%dvalm	%dvalc
+13
+14
+15 Extern values
+16  This value is updated automatically (not selectable).
+17
+18  Time spent:	%clock
+19
+20 Option buttons:
+21  The option buttons flash and execute a function when pressed.
+22
+23 %ONOFF  %QUIT %GRAPH %CAPTURE %DUMP
+%%
+short:	%ival	ival	"%5u"	-callback=ival_callback;
+short:	%ivalm	ival	"%5u"	-fg=GREEN -ro;
+short:	%ivalc	@ival_c	"%5u"	-fg=YELLOW -ro;
+
+double:	%dval	dval	"%5g"	-callback=dval_callback;
+double:	%dvalm	@dval-2	"%5g"	-fg=GREEN -ro;
+double:	%dvalc	dval_c	"%5g"	-fg=YELLOW -ro;
+
+custom:	%clock
+	-data=time_spent
+	-size=4
+	-manager=user_clock
+	-format="%4u"
+	-ro;
+
+button:	%ONOFF		"ON/OFF"	toggle_onoff	  -idname=ONOFF;
+button:	%QUIT		"QUIT"		user_quit	  -idname=QUITB;
+button:	%GRAPH		"GRAF"		graph_data;
+button:	%CAPTURE	"CAPTURE"	capture_data;
+button:	%DUMP		"DUMP"		dump_data;

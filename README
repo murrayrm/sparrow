@@ -1,0 +1,42 @@
+sparrow/ - Sparrow real-time display library
+$Id: README 12599 2007-01-08 03:47:23Z murray $
+
+Sparrow is a C library for implementing real-time control systems
+under Linux.  It was written to be a very simple set of functions that
+can be run with very modest hardware requirements.
+
+Installation
+------------
+1. Edit the Makefile and set DGC and WWW to point to the proper directories
+2. Run 'make' to create the library and sample program
+3. Run 'dispexmp-termcap' to make sure everything looks OK
+4. Run 'make install' to install the executables, headers, libraries
+5. Run 'make install-doc' to install the documentation
+
+Additional documentation is avialable in sparrow.html (created from
+sparrow.txi).
+
+DGC Users: look into SparrowHawk as well.
+
+History
+-------
+The sparrow library was originally written in the late 1980s to
+implement real-time controllers under MSDOS.  It's earlier versions
+consisted of three primary components: a real-time servo library, a
+device driver interface and a simple dynamic display driver.  Because
+MSDOS had no facilities for pre-emptive multi-tasking, the original
+version of sparrow used low-level interrupt service routes to
+implement servo loops.  Since a PC at the time ran on a 66 MHz clock,
+sparrow was designed to be extremely efficient in the way that it
+implemented its functions.
+
+Once Windows came along, development of sparrow came to a slow halt.
+Version 2.1g of sparrow, which was the most commonly used release, was
+released in 1995, although some development activities continued
+through 1999 as part of the rarely used 3.1 and 3.2 releases.  Sparrow
+was revied in late 2003 as part of Caltech DARPA Grand Challenge
+project - we needed a simple way to display the status of real-time
+controllers under Linux and the sparrow display package was a good
+fit.
+
+RMM, 21 Dec 03

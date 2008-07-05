@@ -1,0 +1,336 @@
+Thu Sep 27 21:35:22 2007	murray (murray)
+
+	* version R1-01g
+	BUGS:  
+	New files: dispexmp.h
+	FILES: Makefile.yam(40918), dispexmp.c(40918), display.c(40918),
+		errlog.c(40918), errlog.h(40918)
+	improved stderr handling
+
+	FILES: display.txi(40939), tclib.c(40939)
+	fixed docs
+
+2007-09-27  team  <team@gcfield.dgc.caltech.edu>
+
+	* Makefile.yam: Added rules to compile dispexmp
+
+	* display.c (dd_loop): updated stderr processing to read all
+	available messages rather than just one.  Beeps on first one and
+	also checks dd_errprint flag.
+
+	* errlog.c: Added dd_errprint_toggle() function to toggle printing
+	of error messages and bound this to ^O
+
+Sat Apr 21 11:18:15 2007	Richard Murray (murray)
+
+	* version R1-01f
+	BUGS: 
+	FILES: display.txi(20160)
+	documentation of cdd -c
+
+2007-04-21  Richard Murray  <murray@kona.local>
+
+	* display.txi (display/cdd): added documentation on cdd -c 
+
+Wed Apr 18 11:46:58 2007	murray (murray)
+
+	* version R1-01e
+	BUGS:  
+	FILES: Makefile.yam(19687), cdd.c(19687), cdd.h(19687),
+		chnconf.c(19687), chntest.c(19687), chntest.dd(19687),
+		dbgdisp.c(19687), fcn_gen.c(19687)
+	added ability to create code file
+
+	FILES: Makefile.yam(19747)
+	fixed library dependencies
+
+	FILES: cdd.c(19813), display.c(19813)
+	added support for header path
+
+2007-04-15  Richard Murray  <murray@kona.local>
+
+	* fcn_gen.c: removed unused variables
+
+	* Makefile.yam (PROJ_BINS_INTERNAL): added chntest as internal
+	executable, along with rules for buiding it
+
+	* cdd.c (main): added -c flag to generate separate code file.  Also
+	added a -h flag as an alias for -o (so that you can do -c and -h).
+
+Sat Mar  3  8:20:56 2007	murray (murray)
+
+	* version R1-01d
+	BUGS: 
+	FILES: Makefile.yam(16247)
+	removed cdd from BIN_LINKS
+
+Mon Jan 29  7:17:15 2007	Abhi Jain (jain)
+
+	* version R1-01c
+	BUGS: 
+	Release made to fix hole from laptop R1-00b release. Someone 
+	should verify that everything is still there.
+	
+Sat Jan 27 19:37:57 2007	murray (murray)
+
+	* version R1-01a
+	BUGS: 
+	FILES: errlog.h(13312)
+	added extern C declarations for C++
+
+Sat Jan 27 17:33:51 2007	murray (murray)
+
+	* version R1-00f
+	BUGS: 
+	FILES: Makefile.yam(13197)
+	merged with trunk
+
+Sat Jan 27 17:28:15 2007	murray (murray)
+
+	* version R1-00e-murray
+	BUGS: 
+	FILES: Makefile.yam(13192)
+	added rules for making cdd before library
+
+Mon Jan 22 21:31:52 2007	 (abhoward)
+
+	* version R1-00e
+	BUGS: 
+	Fixed for mixed C/C++ code.  Previous attempt to save died 
+	somehow.
+
+Sat Jan 13 20:14:04 2007	murray (murray)
+
+	* version R1-00d
+	I think this is a spurious commit.  Will try to abort it.
+
+Wed Jan 10 22:33:56 2007	murray (murray)
+
+	* version R1-00c
+	BUGS: 
+	FILES: Makefile.yam(12691), Pending(12691)
+	udpated Makefile for .dd files
+
+2007-01-10  murray  <murray@gclab.dgc.caltech.edu>
+
+	* Makefile.yam (CDD): added rules for making .h files from .dd
+	(PROJ_INTERNAL_BINS): added cdd to internal binaries
+
+2007-01-09  Richard Murray  <murray@dhcp-195.cds.caltech.edu>
+
+	* Makefile: fixed rules for install $(INCS) and errlog.h
+
+2007-01-09  murray  <murray@gclab.dgc.caltech.edu>
+
+	* version R1-00b
+
+	* sertest.c (sertest_driver): added explicit block before
+	declaring variables; fixed problem with type specification (line 200)
+
+	* fcn_gen.c (fcn_channel_scan): fixed declaration
+	* fcn_gen.h (fcn_channel): fixed declaration
+	* virtual.h, fcn_gen.h: fixed driver declarations
+	* channel.h: fixed declaration of chn_add_driver (improper use of ...)
+
+	* debug.c: removed initalization of dbg_outfile to stderr
+	(C compiler warning) and initialized before use.
+
+	* Makefile (install): updated to install include files.  This is
+	needed for backward compatibility with old build system (Makefile
+	itself is not used in YaM)
+
+2007-01-07  murray  <murray@gclab.dgc.caltech.edu>
+
+	* display.c (dd_redraw): added missing argument name (OK before??)
+
+	* errlog.c (errlog_display, dd_errlog_clear): converted to standard C
+
+2007-01-09  murray  <murray@gclab.dgc.caltech.edu>
+
+	* sertest.c (sertest_driver): added explicit block before
+	declaring variables; fixed problem with type specification (line 200)
+
+	* fcn_gen.c (fcn_channel_scan): fixed declaration
+	* fcn_gen.h (fcn_channel): fixed declaration
+	* virtual.h, fcn_gen.h: fixed driver declarations
+	* channel.h: fixed declaration of chn_add_driver (improper use of ...)
+
+	* debug.c: removed initalization of dbg_outfile to stderr
+	(C compiler warning) and initialized before use.
+
+	* Makefile (install): updated to install include files.  This is
+	needed for backward compatibility with old build system (Makefile
+	itself is not used in YaM)
+
+2007-01-07  murray  <murray@gclab.dgc.caltech.edu>
+
+	* display.c (dd_redraw): added missing argument name (OK before??)
+
+	* errlog.c (errlog_display, dd_errlog_clear): converted to standard C
+
+>>>>>>> .merge-right.r12628
+Sun Jan  7 19:44:57 2007	murray (murray)
+
+	* version R1-00a
+	Copy of sparrow from dgc/trunk
+
+	* version R1-00
+	Created sparrow module.
+
+2006-12-31  Richard Murray  <murray@kona.local>
+
+	* errlog.c, errlog.h: added dd_errlog_bindkey to set up standard
+	bindings and dd_errlog_start, dd_errlog_end to move to ends of log.
+	* dispexmp.c (main): changed to use dd_errlog_bindkey
+	
+	* ChangeLog: moved Changes to ChangeLog; using GNU format
+
+--------
+Changes for sparrow library (DGC version)
+RMM, 21 Dec 03
+
+RMM, 30 Dec 06: added stderr redirection
+  * All output to stderr is now captured by sparrow
+  * Output is displayed on prompt line with beep when received
+  * Use dd_toggle_beep_cb to turn beep on/off (new flag: dd_quietf)
+  * dd_errlog_* functions can be used to scroll through the error log
+
+RMM, 30 Dec 06: fixed curses beep functionality
+  * Curses did not beep when printing ^G (just printed "^G" on screen)
+  * Created co_beep() routine; uses ^G on termcap, curses beep() otherwise
+
+RMM, 29 Dec 06: added new "message" type
+  * Use for strings where the pointer changes rather than string contents
+  * See display.txi for more details
+
+RMM, 18 Dec 06: added rebind capability
+  * Use @refname to define a variable that is not initially bound
+  * Use dd_rebind to reassign the address used for displaying the variable
+  * See documentation and dispexmp for more examples
+
+RMM, 31 Dec 04: minor modss that have been waiting for a while to get done
+  * added "int" type, which is the same as short
+  * fixed some small errors in the way variable names were set up
+  * moved doc out of default make
+  * added (doxygen-generated) pgmref to main documentation 
+
+RMM, 23 Dec 04: rewrote serial test routine to use threads
+  * created ptycat to test out serial interface via pty's
+  * created threaded version of sertest, including mutex
+
+RMM, 22 Dec 04: started working on programmers documentation using doxygen
+  * created Doxyfile with info on how to generate documentations
+  * created sparrow.h as single include file + mainpage documentation
+
+RMM, 16 Dec 04: added code for allowing /dev/* for config.dev device addresses
+  * Updated parsing operation in chnconf.c
+  * Created sertest driver to test out serial driver
+
+RMM, 11 Dec 04: added in channel code + servo code hack
+  * Added in missing device driver (channel) code
+  * Only including virtual + fcn-gen devices for now
+  * Added back chntest to test sparrow + drivers
+  * Got rid of schntest (simple chntest); no longer needed
+
+RMM, 7 Aug 04: small improvements to debugging module
+  * dbg_{out,log}f can now be used as masks with DGC_<msgtype> masks
+  * created hooks to allow simple operation during display
+
+RMM, 7 Aug 04: added documentation for debugging routines
+  * added debug.txi to include list in sparrow.txi and updated Makefile
+  * added additional documentation on who to use dbg_* routines
+
+RMM, 7 Aug 04: recompiled under cygwin
+  * removed extraneous timeval declaration in debug.c
+  * termcap version does not link correctly on cygwin; tputs multiply defined
+
+RMM, 3 Jul 04: modifications to allow eventual conversion to terminfo
+  * Removed cgets from Makefile; should be able to delete
+  * Added co_ prefix to all conio.c and termio.c defined routines
+  * Created curslib.c as eventual replacement for tclib, conio, termio
+  * Modified makefile to create termcap and curses versions of library
+
+**** version 2.1h ****
+
+RMM, 30 Jan 04: got rid of error printing in dd_load_tbl
+  * This should be done by calling routine
+
+RMM, 18 Jan 04: added keycode to dd_unbound message
+
+RMM, 17 Jan 04: added logging file capability to dbg_printf
+  * Call dbg_openlog(filename, mode) to create file
+  * Also set up dbg_closelog(), dbg_flushlog()
+  * Tested in vdrive; working
+
+RMM, 14 Jan 04: fixed dd_string error
+  * was using dd->current for length of string (??)
+  * changed to dd->length
+
+RMM, 13 Jan 04: updated flag capability
+  * added flag_update() call into dd loop
+  * set up default location for flags + created update function
+  * simple testing looks OK; might be a bit slower than it could be
+
+RMM, 13 Jan 04: fixed bug in option handling
+  * in parse.y, values were set after option parsing, so it was not possible
+    to change the default display manager (or example)
+  * changed this to process options after setting defaults
+
+RMM, 5 Jan 04: added rudimentary flag capability
+  * use strings to keep track of flag status
+  * see flag.[ch] for list of functions; compatible with sparrow docs
+  * need to figure out how to get refresh to happen automatically
+
+RMM, 4 Jan 04: added capture routines
+  * put in channel and capture routines
+  * requires servo code to work complete (not yet available)
+
+RMM, 3 Jan 04: added routines to save display tables
+  * grabbed ddsave.c from sparrow distribution
+  * grabed chn_gettok from chnconfig.c (standalone function)
+
+RMM, 3 Jan 04: more C++ fixes
+  * created dd_{use,prv}tbl_cb to handle arguments correctly
+
+RMM, 3 Jan 04: WRAP code not working
+  * should allow cursor to wrap around screen
+  * end condition in dd_find_down does not gaurantee termination
+  * commented out #define WRAP for now
+
+RMM, 2 Jan 04: bug fix for large tables
+  * Increased max table size to 1024
+  * Generate error message (instead of core dump) if too long
+
+RMM, 31 Dec 03: enhanced debug routines
+  * Converted dbg_printf -> dbg_{info,warn,error,panic}
+  * Moved header files to ../include/sparrow/*
+  * Deconflicted debug.h and dbglib.h - one no longer includes the other
+
+RMM, 31 Dec 03: fixed but in '=' processing
+  * Sparrow 3.x code had bad ddtype.c; replaced with v2.x versions
+
+RMM, 31 Dec 03: minor tweaks to color processing
+  * created flag in tclib to indicate whether terminal has color or not
+  * Allows proper operaiton under vt100 w/out color capability
+  * Changed getch to dd_getch to avoid curses conflict
+  * Implemented curs_set from curses to try to turn cursor off
+
+RMM, 29 Dec 03: added debugging routines to library
+  * debug.c - SST code for debugging; needs work, but a start
+  * debug.h - defines dbg_printf 
+  * These files still need documentation; trasparent for now
+
+RMM, 26 Dec 03: minor fixes for vehdrive
+  * Declared dd_beep as callback (changed return type to int)
+
+RMM, 21 Dec 03: updated cdd to be g++ compatible
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,9 @@
+@unnumberedsubsec virtual, (RMM, 21 Jul 93)
+This driver simply creates entries in the channel tables in which
+data can be stored, captured and saved to disk with the capture routines.
+The default data conversion routine is used.
+
+Although not used, the channel field must be present.
+
+No device-specific options are used.
+

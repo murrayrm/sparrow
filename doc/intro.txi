@@ -1,0 +1,102 @@
+@c -*- texinfo -*-
+
+@chapter Introduction
+
+@section Overview of the @code{sparrow} library
+
+Sparrow is a collection of programs and a library of C functions
+intended to aid in the implementation of real-time controllers on
+linux-based data acquisition and control systems.  It contains functions
+for executing control algorithms at a fixed rate, communicating with
+hardware interface cards, and displaying data in real-time.
+
+The philosophy that guided the development of sparrow was that it be
+simple to use, easy to customize, and free of charge.  Sparrow is
+intended for use in medium-complexity research and instructional
+applications, where processing speed can be sacrificed in favor of
+programming ease.  Sparrow is @emph{not} a commercial quality real-time
+control environment.  If that is what you are looking for, go out and
+spend your money on VxWorks or LynxOS or a similar product.  They are
+much better, faster, and reliable (and more expensive, too).
+
+The core Sparrow library consists of three main modules:
+
+@table @b
+@item Servo scheduling
+  The servo module allows the user to have a C function called at a
+  specified rate.  For control applications, this function is typically
+  responsible for reading sensor data from hardware, performing control
+  law computations, and writing actuator data to hardware.
+  [Note: The servo library is not currently implemented under linux.]
+
+@item Channel interface
+  The channel interface provides a device-independent interface to
+  hardware.  Device drivers have been written for a few commercial I/O
+  boards and a wide variety of custom devices built in the lab.  Once a
+  device driver is written, reading and writing of data to hardware,
+  data capture, and real-time data plotting is handled automatically.
+
+@item Dynamic display
+  The dynamic display module allows users to quickly and easily build up
+  simply textual displays for controlling an experiment.  Variables can
+  be displayed and updated in real-time (while a controller is running)
+  and commands can be executed by binding functions to keys or
+  "buttons".
+@end table
+@noindent
+Each of these modules is described in its own chapter.  The library also
+includes a number of auxilliary packages which are handy to have around when
+designing state space controllers and performing trajectory tracking tasks.
+A listing of all functions defined in the sparrow library is given in a
+separate reference section.
+
+@section Hardware and software requirements
+
+The sparrow library is intended to be run on linux computers with a
+standard terminal interface.  There is currently no mouse support.
+
+You will also need
+appropriate I/O hardware to interface with your experiment.  Look in the
+hardware section to see what hardware devices already have device
+drivers written for them.  If your interface device is not listed there,
+you will need to write a device driver for it (this is usually easy to
+do).
+
+@section Accessing the @code{sparrow} library
+
+(This documentation is specific to the installation procedures used at
+Caltech.  Feel free to modify the documentation to match your local
+configuration.)
+
+The main sparrow directory is usually installed in /usr/local/sparrow,
+but can be placed anywhere you like.  The following subdirectories are
+available:
+
+@example
+bin             executable programs
+demo            source and executables for demo programs
+include         header files
+lib             library and support files
+src             source code for the library 
+@end example
+
+To use the sparrow library, you must tell the compiler where the
+header files and libraries are located.  If you are using the command
+line compiler, then the @code{-I} and @code{-L} options can be used to
+specify include and library directories, respectively.  In either
+case, you should add @file{/usr/local/sparrow/include} to the list of
+include directories and @file{/usr/local/sparrow/lib} to the list of
+library directories.
+
+If you wish to execute programs which support the sparrow library
+(such as the display compiler, @code{cdd}), you should add
+@file{/usr/local/sparrow/bin} to your path.
+
+@section Acknowledgements
+
+The original sparrow library was written by Richard Murray and Eric
+Wemhoff, with contributions from Bob Behnken, Jiho (Marty) Hahm,
+Michael Kantner, Michiel van Nieuwstadt, and Sudipto Sur.  The linux
+version was written by Richard Murray with contributions by Lars
+Cremean.
+
