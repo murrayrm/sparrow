@@ -1,5 +1,10 @@
               Release Notes for "sparrow" module
 
+Release 4.0.0 (9 Aug 08)
+	This is the initial open source release of the Sparrow
+	real-time control library.  This release contains most of the
+	functionality of the last public release (2.x and 3.x), with
+	extensions to allow operation in Linux.
 
 Release R1-01g (Thu Sep 27 21:35:33 2007):
 	Improved stderr processing: messages sent to stderr are now printed
