@@ -8,7 +8,7 @@
  * display functions should go through this file.  This file replaces
  * tclib.c, conio.c and termio.c in the original sparrow distribution.
  *
- * $Id: curslib.c 12599 2007-01-08 03:47:23Z murray $
+ * $Id$
  *
  * Copyright (c) 2008 by California Institute of Technology
  * All rights reserved.
