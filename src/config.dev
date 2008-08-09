@@ -4,6 +4,7 @@
 # This file contains a few entries for drivers that can be used to 
 # test out chntest.
 #
+
 device: function-gen 3 0x00;
 	channel: 0 -type=0 -dc_offset=1 -frequency=1   -scale=45 -offset=0;
 	channel: 1 -type=1 -dc_offset=2 -frequency=1   -scale=10 -offset=0;

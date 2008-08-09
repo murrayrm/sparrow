@@ -1,5 +1,6 @@
 /*
- * curslib.c - curses/terminfo display management
+ * \file curslib.c 
+ * \brief curses/terminfo display management
  *
  * \author Richard M. Murray
  * \date 27 Jul 92
@@ -7,8 +8,6 @@
  * This file provides an interface to the unix curses library.  All
  * display functions should go through this file.  This file replaces
  * tclib.c, conio.c and termio.c in the original sparrow distribution.
- *
- * $Id$
  *
  * Copyright (c) 2008 by California Institute of Technology
  * All rights reserved.
@@ -41,6 +40,8 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
+ *
+ * $Id$
  */
 
 #include <stdlib.h>
