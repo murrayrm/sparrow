@@ -3,11 +3,14 @@ RMM, 29 Dec 03
 
 Date	   Req	Item
 ----	   ---  ----
+06 Aug 08  RMM  Remove calls to falcon matrix/MATLAB routines.  These
+       	   	should be replaced with calls to libmatio (if present)
+
 05 Jul 08  RMM	Install compatible features from sparrow 3.1, 3.2
        	   	  * Look through old PC code and see what can be moved
 		  
 05 Jul 08  RMM	Update Makefiles to remove /dgc legacy dependencies
-       	   	  * Updated README file to reflect current state
+       	   	  * Update README file to reflect current state
        	   	  * Version number should come from master makefile
 		  * Installation directory should come from master makefile
 

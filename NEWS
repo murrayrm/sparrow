@@ -1,0 +1,18 @@
+Sparrow NEWS -- history of user-visible changes
+RMM, 8 Aug 08
+
+This file desribes changes in Sparrow V4.0.0.  Previous releases of
+Sparrow (2.x, 3.x) were designed for operation on an IBM-PC under
+MSDOS.  Starting with version 4.x, Sparrow is designed for operation
+under linux.
+
+Major differencs from the MSDOS versions:
+
+* Support for flags is somewhat limited due to the use of curses
+  instead of direct memory writes.
+
+* Servo routines do not provide strong timing guarantees.  The linux
+  version of the servo capability currently uses the linux usleep()
+  function.
+
+See ChangeLog for a more detailed list of changes.

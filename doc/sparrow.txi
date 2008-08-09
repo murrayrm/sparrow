@@ -5,15 +5,15 @@
 @titlepage
 @center @titlefont{Sparrow Reference Manual}
 @sp 1
-@center Version DGC.0
-@center 1 January 2004
+@center Version 4.0.0
+@center 8 August 2008
 @sp 2
 @center Richard M. Murray
 @sp 1
 @center Division of Engineering and Applied Science
 @center California Institute of Technology
 @center Pasadena, CA 91125
-@center murray@@indra.caltech.edu
+@center murray@@cds.caltech.edu
 @sp 2
 @center Eric Wemhoff, Michael Kantner, Tom Dmukauskas, Brian Winters
 @sp 1
@@ -31,15 +31,12 @@
 @ifinfo
 @example
                     *** Sparrow Reference Manual ***
-                              Version DGC.2
+                              Version 4.0.0
 @end example
 @end ifinfo
 
-Sparrow is a software package for real-time control on an IBM-PC.  The
-@emph{DGC} version of sparrow is designed to be used for the DARPA
-Grand Challenge and runs in a linux environment.  This manual
-describes how to use the DGC version of the sparrow library and access
-its features.
+Sparrow is a software package for real-time control under linux.  This
+manual describes how to use the sparrow library and access its features.
 
 @menu
 * intro::               Introduction to the Sparrow software package
