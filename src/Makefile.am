@@ -30,11 +30,11 @@ libsparrow_a_SOURCES = \
 
 # Rules for building channel test program chntest
 sparrow_chntest_SOURCES = chntest.c chntest.dd config.dev
-sparrow_chntest_LDADD = libsparrow.a -lcurses @LIBMATIO@
+sparrow_chntest_LDADD = libsparrow.a -lcurses @LIBMATIO@ $(THREAD_LIBS) -lm
 
 # Rules for building check programs
 dispexmp_SOURCES = dispexmp.c dispexmp.dd
 dispexmp_LDADD = libsparrow.a -lcurses @LIBMATIO@
 
 # Define rules for creating display tables
-%.h: %.dd sparrow-cdd;	sparrow-cdd -o $@ $<
+%.h: %.dd sparrow-cdd;	./sparrow-cdd -o $@ $<

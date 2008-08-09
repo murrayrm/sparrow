@@ -12,5 +12,30 @@ AC_SEARCH_LIBS([Mat_VarReadNext], [matio], [
   ], [
     echo "WARNING: matio library not found; MATLAB channel filters not enabled"
   ], [-lz -lm])
+AC_CACHE_CHECK(
+	[if compiler recognizes -pthread],
+	myapp_cv_gcc_pthread,
+	ac_save_CFLAGS=$CFLAGS
+	CFLAGS="$CFLAGS -pthread"
+	AC_LANG_SAVE
+	AC_LANG_C
+	AC_TRY_LINK([#include <pthread.h>],
+		[void *p = pthread_create;],
+		myapp_cv_gcc_pthread=yes,
+		myapp_cv_gcc_pthread=no
+	)
+	AC_LANG_RESTORE
+	CFLAGS=$ac_save_CFLAGS
+)
+if test $myapp_cv_gcc_pthread = yes
+then
+	myapp_threads=""
+	CFLAGS="$CFLAGS -pthread"
+else
+	AC_CHECK_LIB(pthread, pthread_create, 
+	  THREAD_LIBS = "-lpthread", 
+	  AC_MSG_ERROR([can't find pthreads library])
+	)
+fi
 AC_CONFIG_FILES([Makefile src/Makefile doc/Makefile])
 AC_OUTPUT
