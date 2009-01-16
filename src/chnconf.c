@@ -66,7 +66,7 @@ extern DEV_LOOKUP chn_devlut[];	/* device lookup table */
  */
 
 /* Global variables */
-#define MAXCHN 64
+#define MAXCHN 256
 #define FLEN 40			/* max string length allowed for flags,
 				 * including preceeding - and possibly an =
 				 * sign and flag value */
@@ -156,6 +156,11 @@ int chn_config(char *file)
 		    break;
 
 	    if (chn_devlut[i].name == NULL) {
+		if (strcmp(buf,"end")==0) {
+	            /* artifical end of file */
+	            fprintf(stderr,"Device \"%s\" found in line %d, skipping rest of .dev file.\n", buf, line);
+	            break;
+	        }
 		fprintf(stderr,
 		 "Device \"%s\" unknown, skipping. (line %d)\n", buf, line);
 		chn_flag_type = Unknown;
@@ -290,7 +295,7 @@ int chn_config(char *file)
 	    fprintf(stderr, "chn_config: Ignoring unknown text (%s) in config file, line %d\n", buf, line);
 	    errorflag++;
 	}
-	if (ch == EOF)
+	if (feof(fp))
 	    break;
     } while (1);		/* end of configuration file parsing loop */
 

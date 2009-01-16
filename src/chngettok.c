@@ -66,7 +66,7 @@ int chn_gettok(FILE * fp, char *string, int length, char *delimiters, int *line)
     ch = fgetc(fp);
     if (ch == '#') {	/* ignore stuff from # to end of line
 			 * (comments) */
-      while (ch != '\n' && ch != EOF)
+      while (ch != '\n' && !feof(fp))
 	ch = fgetc(fp);
     }
     if (ch == '\n')
@@ -76,7 +76,7 @@ int chn_gettok(FILE * fp, char *string, int length, char *delimiters, int *line)
   while (i < length - 1) {
     if (ch == '\n')
       ++(*line);
-    if (strchr(delimiters, (int) ch) != NULL || ch == EOF) {
+    if (strchr(delimiters, (int) ch) != NULL || feof(fp)) {
       if (strchr(string, '=') != NULL) flag = 1;
       while (ch == ' ' || ch == '\t') /* allow spaces or tabs between */
 	ch = fgetc(fp);               /* flag and equal sign as well as */
@@ -86,7 +86,7 @@ int chn_gettok(FILE * fp, char *string, int length, char *delimiters, int *line)
 	continue;
       else {
 	flag = 0;
-	if (ch != EOF && ch != '\n' && ch != ';')
+	if (!feof(fp) && ch != '\n' && ch != ';')
 	  ungetc(ch,fp);
 	string[i] = '\0';
 	return ch;
@@ -94,7 +94,7 @@ int chn_gettok(FILE * fp, char *string, int length, char *delimiters, int *line)
     }
     if (ch == '#') {	/* ignore stuff from # to end of line
 			 * (comments) */
-      while (ch != '\n' && ch != EOF)
+      while (ch != '\n' && !feof(fp))
 	ch = fgetc(fp);
     }
     string[i++] = ch;

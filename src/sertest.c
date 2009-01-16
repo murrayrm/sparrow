@@ -239,6 +239,10 @@ int sertest_driver(DEV_ACTION action, ...)
 
       break; 
     }
+    
+  case Close:
+    break;
+  
   }
 
   va_end(ap);

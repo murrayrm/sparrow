@@ -72,7 +72,8 @@ enum chn_driver_action {
     NewChannels,                  /*!< make driver-specific part of channels */
     HandleFlag,                   /*!< handle a driver-specific flag */
     DeviceSpecific,               /*!< routine necessary for devtest */
-    AsynRW			  /*!< asynchronous R/W (not currently used) */
+    AsynRW,			  /*!< asynchronous R/W (not currently used) */
+    Close			  /*!< close the driver and reset outputs */
 };
 typedef enum chn_driver_action DEV_ACTION;
 

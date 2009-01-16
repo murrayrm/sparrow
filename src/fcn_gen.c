@@ -128,6 +128,9 @@ int fcn_driver(DEV_ACTION action, ...)
 
   case Init:
     break;
+  
+  case Close:
+    break;
     
   case NewChannels:
     /* create fcn_gen specific part of the channel entries */

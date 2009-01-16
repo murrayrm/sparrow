@@ -72,6 +72,9 @@ int virtual_driver(DEV_ACTION action, ...)
 
   case HandleFlag:
     break;         /* no dev-sp flags supported by virtual */
+  
+  case Close:
+    break;
   }
   va_end(ap);
   return status;

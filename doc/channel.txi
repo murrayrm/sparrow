@@ -124,6 +124,9 @@ The fields are defined as follows:
 @table @code
 @item devname
 Name of the device driver.
+Note: Choosing @code{end} as the name will cause sparrow to stop evaluating 
+the device file. This can be used to temporarily disabled devices without deleting
+their entry in the file.
 
 @item numchan
 Number of channels to be handled by this driver.
@@ -545,6 +548,15 @@ whenever this function comes across an option flag in the
 configuration file it does not recognize as a standard option (the
 standard options are listed above).  
 
+@item Close
+The device driver is called with this action during each
+call of @code{chn_close()}.
+The arguments @code{dp} and @code{cp} will point to the device's 
+entry in the device table and the device's first channel's entry 
+in the channel table, respectively.
+Typically the device will reset outputs to save values or reset system 
+settings which it might have changed during the initialization.
+
 The @code{chn_config()} function attempts to read through the
 configuration file sequentially, dealing with each keyword, field
 value, or option as it finds them. 
@@ -661,7 +673,8 @@ DEV_LOOKUP chn_devlut[CHN_MAXDEV] = @{
 @};
 @end example  
 The current value of @code{CHN_MAXDEV} is 64, which should be more than
-enough devices.   There is also a limit of 64 channels that be defined.
+enough devices.   There is also a limit of 256 channels that be
+defined (@code{MAXCHN}).
 
 @unnumberedsubsec Error messages
 In general, error messages will be written to the output stream

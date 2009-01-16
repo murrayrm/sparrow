@@ -206,8 +206,8 @@ int chn_close()
 
     /* Read data from hardware */
     for (chni = 0; chni < chn_ndev; ++chni) {
-	/* Call device driver to re-initialize all channels */
-	(*dp->driver) (Init, dp, chn_chantbl + offset);
+	/* Call device driver to close all channels */
+	(*dp->driver) (Close, dp, chn_chantbl + offset);
 
 	/* Update the offset into the channel table */
 	offset += dp->size;
