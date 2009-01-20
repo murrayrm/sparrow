@@ -63,4 +63,12 @@ void servo_disable(void);
 int servo_start(void (*)(), int);
 void servo_stop();
 
+double time_it_took;
+double actual_period_time;
+#define SERVO_OVERHEAD 90
+// adjust this as needed
+// examples:
+// 90 for a desktop computer,
+// 10000 for a gumstix
+
 #endif /* __SERVO_INCLUDED__ */

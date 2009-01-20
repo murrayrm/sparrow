@@ -44,25 +44,42 @@
  * $Id$
  */
 
+#include <time.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
 #include "servo.h"
+#include <stdio.h>
 
-static pthread_t servo_thread;		/* servo thread */
+static pthread_t servo_thread;	        /* servo thread */
 static void *isr_handler(void *arg);	/* servo routine */
 static void (*isr_userisr)()  = NULL;	/* user servo function */
-int servo_freq = -1;			/* servo frequency */
-unsigned long servo_usec;		/* servo sleep time */
+int servo_freq = -1;		        /* servo frequency */
+int isr_count = 0;                      /* counter */
+unsigned long servo_period;	        /* servo period time in 10^-6 sec */
+struct timeval tv;                      /* for calls of gettimeofday */
+unsigned long long time1 = 0;           /* to measure time intervals */
+unsigned long long time2 = 0;
+double temp_time1 = 0.0;
+double temp_time2 = 0.0;                /* to measure time intervals and */
+int n = 0;                              /* compute an average period time */
+//#define MEASURE_AVG_PERIOD
 
 int servo_setup(void (*routine)(), int freq, int flags)
 {
-  unsigned long period = 1000000/freq;
-
-  pthread_create(&servo_thread, NULL, isr_handler, (void *) NULL);
-  servo_freq = 1000000/period;
-  servo_usec = period;
+  servo_period = 1000000/freq;
+  
+  servo_freq = freq;
+  
   isr_userisr = routine;
+  
+  // initialization
+  gettimeofday(&tv,NULL);
+  time1 = (unsigned long long)tv.tv_usec + 1000000ULL * tv.tv_sec;
+
+  if (isr_userisr != NULL){
+    pthread_create(&servo_thread, NULL, isr_handler, (void *) NULL);
+  }
 
   return servo_freq;
 }
@@ -91,8 +108,38 @@ void servo_disable()
 static void *isr_handler(void *arg)
 {
   while (1) {
-    if (isr_userisr != NULL) (*isr_userisr)();
-    usleep(servo_usec);
+	  
+    temp_time1 = ((double)time1)/1000000.0;
+
+    // time before
+    gettimeofday(&tv,NULL);
+    time1 = (unsigned long long)tv.tv_usec + 1000000ULL * tv.tv_sec;
+
+    // for measuring purposes, this variable can be displayed by the dd
+    actual_period_time = ((double)time1)/1000000.0 - temp_time1;
+    
+#ifdef MEASURE_AVG_PERIOD
+    n++;
+    temp_time2 = temp_time2 + actual_period_time;
+    fprintf(stderr,"%1.10f, %d",temp_time2/n,n);
+#endif
+    
+    // servo function
+    (*isr_userisr)();
+    
+    isr_count++;
+
+    // time afterwards
+    gettimeofday(&tv,NULL);
+    time2 = (unsigned long long)tv.tv_usec + 1000000ULL * tv.tv_sec;
+
+    // for measuring purposes, this variable can be displayed by the dd
+    time_it_took = ((double)(time2 - time1))/1000000.0;
+    
+    if((servo_period)>((time2 - time1) + SERVO_OVERHEAD)){
+      usleep(servo_period - (time2 - time1) - SERVO_OVERHEAD);
+    }else{
+      // execution time > period time !!!
+    }
   }
 }
-
