@@ -1,0 +1,13 @@
+*.o
+parse.c
+libsparrow.a
+Makefile
+Makefile.in
+chntest.h
+dispexmp.h
+fcn_tbl.h
+sparrow-chntest
+sparrow-chntest.dSYM
+sparrow-cdd
+sparrow-cdd.dSYM 
+.deps/

@@ -1,0 +1,14 @@
+Makefile
+Makefile.in
+aclocal.m4
+autom4te.cache/
+bin/
+compile
+config.log
+config.status
+configure
+depcomp
+install-sh
+sparrow-*.tar.gz
+missing
+ylwrap
