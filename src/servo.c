@@ -50,6 +50,7 @@
 #include <pthread.h>
 #include "servo.h"
 #include <stdio.h>
+#include <sys/time.h>
 
 static pthread_t servo_thread;	        /* servo thread */
 static void *isr_handler(void *arg);	/* servo routine */

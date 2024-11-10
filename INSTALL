@@ -3,6 +3,12 @@ generate system specific Makefiles.  To install the library in the
 default location (typically /usr/local), run the following from the
 base directory:
 
+  aclocal
+  automake --add-missing
+  autoconf
   ./configure
   make
   make install
+
+To compile the user documentation, you will need the texinfo package
+(available via conda).

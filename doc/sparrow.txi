@@ -1,4 +1,4 @@
-\input etexinfo                 @c -*- texinfo -*-
+\input texinfo                 @c -*- texinfo -*-
 @setfilename sparrow.info
 @settitle Sparrow Reference Manual
 

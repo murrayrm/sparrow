@@ -1,6 +1,4 @@
-AC_INIT([Sparrow Library], [4.0.0],
-        [Richard M. Murray <murray@cds.caltech.edu>],
-        [sparrow])
+AC_INIT([Sparrow Library],[4.0.0],[Richard M. Murray <murray@cds.caltech.edu>],[sparrow])
 AM_INIT_AUTOMAKE		dnl initialize automake
 AC_PROG_CC			dnl configure C compiler
 AC_PROG_YACC			dnl configure Yacc
@@ -18,12 +16,9 @@ AC_CACHE_CHECK(
 	ac_save_CFLAGS=$CFLAGS
 	CFLAGS="$CFLAGS -pthread"
 	AC_LANG_SAVE
-	AC_LANG_C
-	AC_TRY_LINK([#include <pthread.h>],
-		[void *p = pthread_create;],
-		myapp_cv_gcc_pthread=yes,
-		myapp_cv_gcc_pthread=no
-	)
+	AC_LANG([C])
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <pthread.h>]], [[void *p = pthread_create;]])],[myapp_cv_gcc_pthread=yes],[myapp_cv_gcc_pthread=no
+	])
 	AC_LANG_RESTORE
 	CFLAGS=$ac_save_CFLAGS
 )
